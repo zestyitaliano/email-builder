@@ -89,10 +89,13 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
     [applyElementUpdate]
   );
 
-  const handleStyleChange = useCallback(
+  const updateElementStyle = useCallback(
     (id: string, style: Partial<Style>, options?: { commit?: boolean }) => {
       applyElementUpdate(
-        (prev) => prev.map((element) => (element.id === id ? { ...element, styles: { ...element.styles, ...style } } : element)),
+        (prev) =>
+          prev.map((element) =>
+            element.id === id ? { ...element, styles: { ...element.styles, ...style } } : element
+          ),
         options
       );
     },
@@ -172,9 +175,9 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
   const handlePanelStyleChange = useCallback(
     (style: Partial<Style>, options?: { commit?: boolean }) => {
       if (!selectedElementId) return;
-      handleStyleChange(selectedElementId, style, options);
+      updateElementStyle(selectedElementId, style, options);
     },
-    [selectedElementId, handleStyleChange]
+    [selectedElementId, updateElementStyle]
   );
 
   const handlePanelContentChange = useCallback(
@@ -380,7 +383,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
             elements={elements}
             selectedElementId={selectedElementId}
             onSelectElement={setSelectedElementId}
-            onStyleChange={handleStyleChange}
+            onStyleChange={updateElementStyle}
           />
         </div>
       </div>
