@@ -158,14 +158,50 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
         event.preventDefault();
         undo();
       }
-      if ((event.metaKey || event.ctrlKey) && ((event.shiftKey && event.key.toLowerCase() === "z") || event.key.toLowerCase() === "y")) {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        ((event.shiftKey && event.key.toLowerCase() === "z") || event.key.toLowerCase() === "y")
+      ) {
         event.preventDefault();
         redo();
+      }
+
+      if (!selectedElementId) return;
+      if (event.altKey) return;
+      if (!event.key.startsWith("Arrow")) return;
+
+      const selected = elements.find((element) => element.id === selectedElementId);
+      if (!selected) return;
+
+      const nudgeAmount = event.shiftKey ? 5 : 1;
+      const currentTop =
+        typeof selected.styles.top === "number" ? selected.styles.top : Number(selected.styles.top) || 0;
+      const currentLeft =
+        typeof selected.styles.left === "number" ? selected.styles.left : Number(selected.styles.left) || 0;
+
+      const stylePatch: Partial<Style> = {};
+
+      if (event.key === "ArrowUp") {
+        stylePatch.top = currentTop - nudgeAmount;
+      }
+      if (event.key === "ArrowDown") {
+        stylePatch.top = currentTop + nudgeAmount;
+      }
+      if (event.key === "ArrowLeft") {
+        stylePatch.left = currentLeft - nudgeAmount;
+      }
+      if (event.key === "ArrowRight") {
+        stylePatch.left = currentLeft + nudgeAmount;
+      }
+
+      if (Object.keys(stylePatch).length) {
+        event.preventDefault();
+        updateElementStyle(selectedElementId, stylePatch, { commit: true });
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [undo, redo]);
+  }, [undo, redo, selectedElementId, elements, updateElementStyle]);
 
   const selectedElement = useMemo(
     () => elements.find((element) => element.id === selectedElementId) ?? null,
