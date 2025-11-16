@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
   title: "Email Canvas",
-  description: "A modern email canvas experience inspired by Firebase Studio",
+  description: "A standalone, canvas-first email builder with Supabase auth",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

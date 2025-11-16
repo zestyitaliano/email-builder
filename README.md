@@ -1,6 +1,6 @@
 # Email Builder
 
-Next.js + Supabase starter that provisions public authentication routes under `app/(auth)` and server-protected dashboards under `app/(dashboard)`.
+Standalone Next.js + Supabase email builder with a canvas-first editor and an optional row-based template builder. Public auth routes live under `app/(auth)` and the Supabase-protected dashboard lives under `app/(dashboard)`.
 
 ## Getting started
 
@@ -21,7 +21,7 @@ app/
   (auth)/              // Public auth UI (login + signup) rendered with @supabase/auth-ui-react
   (dashboard)/         // Server components that gate every route behind Supabase auth
   layout.tsx           // Global layout & styles (Tailwind)
-  page.tsx             // Marketing hero landing page
+  page.tsx             // Canvas-first email editor (main experience)
 lib/
   supabaseClient.ts    // Browser helpers powered by createBrowserClient
   supabaseServer.ts    // Server helper consumed inside layouts/actions
