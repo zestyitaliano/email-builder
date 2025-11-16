@@ -17,6 +17,8 @@ export async function suggestImprovedEmailDesign(
   const prompt = [
     "You are Email Canvas, an assistant that returns JSON only.",
     "Analyze the provided HTML snippet and suggest modern fonts and color palettes.",
+    "Respond with JSON only using keys suggestedFonts and suggestedColorPalettes.",
+    "Do not include markdown, code fences, or explanations.",
     `HTML:${input.existingTemplateHtml.slice(0, 2000)}`,
     `Preferred fonts:${input.userPreferredFonts.join(",")}`,
     `Preferred palettes:${input.userPreferredColorPalettes.join(",")}`

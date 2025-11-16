@@ -1,4 +1,7 @@
+"use server";
+
 import { suggestImprovedEmailDesign } from "@/ai/flows/suggest-improved-email-design";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 import type { CanvasElement, Style } from "@/lib/types";
 
 const LAYOUT_KEYS = new Set([
@@ -23,7 +26,7 @@ const escapeHtml = (value: string) =>
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 
-export function styleObjectToInline(style: Style): string {
+function styleObjectToInline(style: Style): string {
   return Object.entries(style)
     .filter(([key]) => !LAYOUT_KEYS.has(key) && !RESERVED_PREFIXES.some((prefix) => key.startsWith(prefix)))
     .map(([key, value]) => {
@@ -88,14 +91,12 @@ const renderAbsoluteLayout = (elements: CanvasElement[]) =>
     .join("");
 
 export async function exportToHtml(elements: CanvasElement[]): Promise<string> {
-  "use server";
   const canvasHtml = renderAbsoluteLayout(elements);
   const documentHtml = `<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Email Preview</title></head><body style="margin:0;padding:32px;background-color:#E8EAF6;font-family:Inter,Arial,sans-serif;"><table role="presentation" width="100%" style="width:100%;border-spacing:0;border-collapse:collapse;"><tr><td align="center" style="padding:0;"><table role="presentation" width="600" style="width:600px;border-spacing:0;border-collapse:collapse;background-color:#ffffff;border-radius:32px;box-shadow:0 20px 45px rgba(63,81,181,0.12);"><tr><td style="position:relative;height:720px;padding:48px 24px;background-image:linear-gradient(145deg,#f5f5ff,#ffffff);"><div style="position:relative;width:552px;height:624px;margin:0 auto;">${canvasHtml}</div></td></tr></table></td></tr></table></body></html>`;
   return documentHtml;
 }
 
 export async function getAiSuggestions(currentHtml: string) {
-  "use server";
   try {
     const suggestions = await suggestImprovedEmailDesign({
       existingTemplateHtml: currentHtml,
@@ -109,13 +110,51 @@ export async function getAiSuggestions(currentHtml: string) {
   }
 }
 
-export async function saveTemplate(elements: CanvasElement[]) {
-  "use server";
-  console.log("saveTemplate placeholder", elements.length);
-  return { success: true };
-}
+export async function saveCanvasTemplate(templateId: string | null, elements: CanvasElement[]): Promise<string> {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
 
-export async function loadTemplate() {
-  "use server";
-  return { elements: [] };
+  if (userError || !user) {
+    throw new Error("Not authenticated");
+  }
+
+  if (!templateId) {
+    const { data, error } = await supabase
+      .from("templates")
+      .insert({
+        user_id: user.id,
+        name: "New Canvas Template",
+        status: "draft",
+        canvas_state: elements
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      console.error("Failed to insert canvas template", error);
+      throw new Error("Unable to save template");
+    }
+
+    return data.id;
+  }
+
+  const { data, error } = await supabase
+    .from("templates")
+    .update({
+      canvas_state: elements,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", templateId)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    console.error("Failed to update canvas template", error);
+    throw new Error("Unable to save template");
+  }
+
+  return data.id;
 }

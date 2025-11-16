@@ -10,6 +10,8 @@ interface SettingsPanelProps {
   onStyleChange: (style: Partial<Style>, options?: { commit?: boolean }) => void;
   onContentChange: (content: string) => void;
   onDelete: () => void;
+  onApplyFonts?: (fonts: string[]) => void;
+  onApplyPalette?: (palettes: string[]) => void;
 }
 
 export function SettingsPanel({
@@ -18,7 +20,9 @@ export function SettingsPanel({
   onAddElement,
   onStyleChange,
   onContentChange,
-  onDelete
+  onDelete,
+  onApplyFonts,
+  onApplyPalette
 }: SettingsPanelProps) {
   return (
     <aside className="w-full max-w-sm space-y-4 rounded-4xl bg-[#F1F3FF]/70 p-4">
@@ -43,7 +47,7 @@ export function SettingsPanel({
           </div>
         </div>
         <div className="mt-4">
-          <AiSuggestions elements={elements} />
+          <AiSuggestions elements={elements} onApplyFonts={onApplyFonts} onApplyPalette={onApplyPalette} />
         </div>
       </div>
     </aside>
