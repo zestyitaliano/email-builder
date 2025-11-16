@@ -1,0 +1,123 @@
+import type React from "react";
+import type { BuilderNode } from "@/types/nodes";
+
+export interface Style extends React.CSSProperties {
+  [key: string]: any;
+}
+
+export type CanvasElementType = "text" | "image" | "button";
+
+export interface CanvasElement {
+  id: string;
+  type: CanvasElementType;
+  content: string;
+  styles: Style;
+}
+
+const randomId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2);
+
+const baseElementStyles: Record<CanvasElementType, Style> = {
+  text: {
+    top: 120,
+    left: 120,
+    width: 360,
+    minHeight: 48,
+    color: "#111827",
+    fontSize: 20,
+    fontWeight: 600,
+    fontFamily: "Inter, 'Helvetica Neue', Arial, sans-serif",
+    lineHeight: 1.4,
+    textAlign: "left"
+  },
+  image: {
+    top: 220,
+    left: 80,
+    width: 440,
+    height: 240,
+    objectFit: "cover",
+    borderRadius: 16,
+    backgroundColor: "#dfe3f5"
+  },
+  button: {
+    top: 520,
+    left: 200,
+    width: 200,
+    height: 48,
+    backgroundColor: "#3F51B5",
+    color: "#ffffff",
+    borderRadius: 999,
+    fontWeight: 600,
+    fontFamily: "Inter, 'Helvetica Neue', Arial, sans-serif",
+    textAlign: "center",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  }
+};
+
+const defaultContent: Record<CanvasElementType, string> = {
+  text: "Tell your story with confident typography.",
+  image: "Hero image",
+  button: "Explore now"
+};
+
+export const createCanvasElement = (type: CanvasElementType): CanvasElement => ({
+  id: `${type}-${randomId()}`,
+  type,
+  content: defaultContent[type],
+  styles: { ...baseElementStyles[type] }
+});
+
+export const cloneCanvasElements = (elements: CanvasElement[]): CanvasElement[] =>
+  elements.map((element) => ({ ...element, styles: { ...element.styles } }));
+
+export const migrateBuilderNode = (node: BuilderNode, index = 0): CanvasElement => {
+  if (node.type === "text") {
+    return {
+      id: node.id,
+      type: "text",
+      content: node.props.text,
+      styles: {
+        ...baseElementStyles.text,
+        top: 80 + index * 120,
+        left: 80,
+        color: node.props.color,
+        fontSize: node.props.fontSize,
+        textAlign: node.props.align
+      }
+    };
+  }
+
+  if (node.type === "image") {
+    return {
+      id: node.id,
+      type: "image",
+      content: node.props.alt,
+      styles: {
+        ...baseElementStyles.image,
+        width: node.props.width,
+        src: node.props.url,
+        top: 140 + index * 140
+      }
+    };
+  }
+
+  return {
+    id: node.id,
+    type: "button",
+    content: node.props.label,
+    styles: {
+      ...baseElementStyles.button,
+      backgroundColor: node.props.variant === "primary" ? "#3F51B5" : "#ffffff",
+      color: node.props.variant === "primary" ? "#ffffff" : "#111827",
+      borderColor: node.props.variant === "primary" ? "transparent" : "#111827",
+      top: 180 + index * 100
+    }
+  };
+};
+
+export const migrateLegacyNodes = (nodes: BuilderNode[]): CanvasElement[] =>
+  nodes.map((node, index) => migrateBuilderNode(node, index));

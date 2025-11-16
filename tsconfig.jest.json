@@ -4,5 +4,5 @@
     "types": ["jest", "node"],
     "isolatedModules": false
   },
-  "include": ["__tests__/**/*.ts", "lib/**/*.ts", "types/**/*.ts", "components/**/*.ts", "components/**/*.tsx"]
+  "include": ["__tests__/**/*.ts", "src/lib/**/*.ts", "src/types/**/*.ts", "src/components/**/*.ts", "src/components/**/*.tsx"]
 }
