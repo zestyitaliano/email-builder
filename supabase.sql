@@ -27,6 +27,7 @@ create table if not exists public.templates (
   status text default 'draft',
   html text,
   builder_tree jsonb default '[]'::jsonb,
+  canvas_state jsonb,
   updated_at timestamptz default timezone('utc', now()) not null,
   inserted_at timestamptz default timezone('utc', now()) not null
 );

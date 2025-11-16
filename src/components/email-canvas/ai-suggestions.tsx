@@ -9,9 +9,11 @@ import { exportToHtml, getAiSuggestions } from "@/lib/actions";
 
 interface AiSuggestionsProps {
   elements: CanvasElement[];
+  onApplyFonts?: (fonts: string[]) => void;
+  onApplyPalette?: (palettes: string[]) => void;
 }
 
-export function AiSuggestions({ elements }: AiSuggestionsProps) {
+export function AiSuggestions({ elements, onApplyFonts, onApplyPalette }: AiSuggestionsProps) {
   const [result, setResult] = useState<{ suggestedFonts: string[]; suggestedColorPalettes: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -52,6 +54,11 @@ export function AiSuggestions({ elements }: AiSuggestionsProps) {
                 <li key={font}>{font}</li>
               ))}
             </ul>
+            {onApplyFonts && result.suggestedFonts.length > 0 && (
+              <Button variant="outline" className="mt-3 px-3 py-1 text-xs" onClick={() => onApplyFonts(result.suggestedFonts)}>
+                Apply fonts
+              </Button>
+            )}
           </div>
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.3em] text-slate-500">Color palettes</p>
@@ -60,6 +67,15 @@ export function AiSuggestions({ elements }: AiSuggestionsProps) {
                 <li key={palette}>{palette}</li>
               ))}
             </ul>
+            {onApplyPalette && result.suggestedColorPalettes.length > 0 && (
+              <Button
+                variant="outline"
+                className="mt-3 px-3 py-1 text-xs"
+                onClick={() => onApplyPalette(result.suggestedColorPalettes)}
+              >
+                Apply palette
+              </Button>
+            )}
           </div>
         </Card>
       )}
