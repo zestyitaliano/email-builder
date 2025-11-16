@@ -3,7 +3,7 @@ const config = {
   testEnvironment: "node",
   testMatch: ["**/__tests__/**/*.test.ts"],
   moduleNameMapper: {
-    "^@/(.*)$": "<rootDir>/$1"
+    "^@/(.*)$": "<rootDir>/src/$1"
   },
   globals: {
     "ts-jest": {
