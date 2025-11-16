@@ -7,11 +7,12 @@ import { EmailPreviewDialog } from "@/components/email-canvas/email-preview-dial
 import { SettingsPanel } from "@/components/email-canvas/settings-panel";
 import { Button } from "@/components/ui/button";
 import { saveCanvasTemplate } from "@/lib/actions";
+import { createBaseCanvasElements } from "@/lib/canvasPresets";
 import { cloneCanvasElements, createCanvasElement } from "@/lib/types";
 import type { CanvasElement, CanvasElementType, Style } from "@/lib/types";
 
 interface EmailCanvasWorkspaceProps {
-  initialElements: CanvasElement[];
+  initialElements?: CanvasElement[];
   initialTemplateId?: string | null;
 }
 
@@ -27,9 +28,14 @@ const palettePresets: Record<string, { primary: string; accent: string; text: st
 const DEFAULT_PALETTE = palettePresets["Blue & Silver"];
 
 export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null }: EmailCanvasWorkspaceProps) {
-  const [elements, setElements] = useState<CanvasElement[]>(() => cloneCanvasElements(initialElements));
-  const [selectedElementId, setSelectedElementId] = useState<string | null>(initialElements[0]?.id ?? null);
-  const [history, setHistory] = useState<CanvasElement[][]>([cloneCanvasElements(initialElements)]);
+  const startingElements = useMemo(
+    () => cloneCanvasElements(initialElements ?? createBaseCanvasElements()),
+    [initialElements]
+  );
+
+  const [elements, setElements] = useState<CanvasElement[]>(startingElements);
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(startingElements[0]?.id ?? null);
+  const [history, setHistory] = useState<CanvasElement[][]>([cloneCanvasElements(startingElements)]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const historyIndexRef = useRef(0);
   const preferencesAppliedRef = useRef(false);
