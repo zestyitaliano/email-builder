@@ -7,6 +7,7 @@ import { createNode } from "@/types/nodes";
 import { Palette } from "@/components/builder/Palette";
 import { Canvas } from "@/components/builder/Canvas";
 import { Inspector } from "@/components/builder/Inspector";
+import { ExportButton } from "@/components/builder/ExportButton";
 import {
   useBuilderStore,
   selectNodes,
@@ -78,8 +79,9 @@ export function BuilderClient({ templateId, initialNodes, templateName, template
           <p className="text-lg font-semibold text-slate-900">{templateName}</p>
           {templateSubject && <p className="text-sm text-slate-500">{templateSubject}</p>}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <StatusPill status={status} dirty={dirty} />
+          <ExportButton />
           <button
             type="button"
             className="rounded-full bg-slate-900 px-5 py-2 text-sm font-medium text-white disabled:opacity-50"
