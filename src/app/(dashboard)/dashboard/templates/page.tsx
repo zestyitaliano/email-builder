@@ -23,20 +23,18 @@ export default async function TemplatesPage() {
   return (
     <section className="space-y-6">
       <header className="space-y-1">
-        <h1 className="text-3xl font-semibold text-slate-900">Row Templates (Advanced)</h1>
-        <p className="text-slate-600">Row-based email template editor – optimized for inbox compatibility.</p>
+        <h1 className="text-2xl font-semibold text-slate-900">Row templates</h1>
+        <p className="text-sm text-slate-600">
+          Structured, row-based email templates optimized for reliable inbox rendering.
+        </p>
       </header>
       {(templates ?? []).length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">No templates yet</h2>
-          <p className="max-w-xl text-slate-600">Get started by creating your first email template.</p>
-          <Link
-            href="/dashboard/templates"
-            className="inline-flex items-center justify-center rounded-full bg-[#3F51B5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#35449a]"
-          >
-            New row-based template
-          </Link>
-          {/* TODO: Wire up a dedicated creation flow for new row-based templates. */}
+        <div className="mt-10 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-8 py-12 text-center">
+          <h2 className="text-lg font-semibold text-slate-900">No row templates yet</h2>
+          <p className="mt-2 max-w-md text-sm text-slate-600">
+            Create a reusable, row-based email template to speed up future campaigns.
+          </p>
+          {/* If you later add a dedicated "new row template" route, link to it here. For now, you can link to the templates list or leave a TODO. */}
         </div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
