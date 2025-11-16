@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
 export default async function TemplatesPage() {
@@ -21,6 +22,7 @@ export default async function TemplatesPage() {
               <th className="px-6 py-3">Subject</th>
               <th className="px-6 py-3">Status</th>
               <th className="px-6 py-3">Updated</th>
+              <th className="px-6 py-3" aria-label="Actions" />
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -31,6 +33,14 @@ export default async function TemplatesPage() {
                 <td className="px-6 py-4 capitalize">{template.status ?? "draft"}</td>
                 <td className="px-6 py-4 text-sm text-slate-500">
                   {template.updated_at ? new Date(template.updated_at).toLocaleString() : "--"}
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <Link
+                    href={`/dashboard/templates/${template.id}/builder`}
+                    className="rounded-full border border-slate-200 px-4 py-1 text-sm font-medium text-slate-700 hover:border-slate-400"
+                  >
+                    Open builder
+                  </Link>
                 </td>
               </tr>
             ))}
