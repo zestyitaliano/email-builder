@@ -9,7 +9,7 @@ interface SettingsPanelProps {
   onAddElement: (type: CanvasElementType) => void;
   onStyleChange: (style: Partial<Style>, options?: { commit?: boolean }) => void;
   onContentChange: (content: string) => void;
-  onDelete: () => void;
+  onDeleteElement: (id: string) => void;
   onApplyFonts?: (fonts: string[]) => void;
   onApplyPalette?: (palettes: string[]) => void;
 }
@@ -20,7 +20,7 @@ export function SettingsPanel({
   onAddElement,
   onStyleChange,
   onContentChange,
-  onDelete,
+  onDeleteElement,
   onApplyFonts,
   onApplyPalette
 }: SettingsPanelProps) {
@@ -32,7 +32,7 @@ export function SettingsPanel({
           element={selectedElement}
           onStyleChange={onStyleChange}
           onContentChange={onContentChange}
-          onDelete={onDelete}
+          onDelete={() => onDeleteElement(selectedElement.id)}
         />
       ) : (
         <div className="rounded-3xl border border-dashed border-slate-200 bg-white/70 p-6 text-center text-sm text-slate-500">

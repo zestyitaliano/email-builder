@@ -72,7 +72,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
     [pushHistory]
   );
 
-  const addElement = useCallback(
+  const handleAddElement = useCallback(
     (type: CanvasElementType) => {
       const newElement = createCanvasElement(type);
       newElement.styles.top = 160 + Math.random() * 120;
@@ -83,7 +83,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
     [applyElementUpdate]
   );
 
-  const updateElementStyle = useCallback(
+  const handleStyleChange = useCallback(
     (id: string, style: Partial<Style>, options?: { commit?: boolean }) => {
       applyElementUpdate(
         (prev) => prev.map((element) => (element.id === id ? { ...element, styles: { ...element.styles, ...style } } : element)),
@@ -93,7 +93,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
     [applyElementUpdate]
   );
 
-  const updateElementContent = useCallback(
+  const handleContentChange = useCallback(
     (id: string, content: string) => {
       applyElementUpdate((prev) => prev.map((element) => (element.id === id ? { ...element, content } : element)), {
         commit: true
@@ -102,14 +102,21 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
     [applyElementUpdate]
   );
 
-  const deleteElement = useCallback(() => {
-    if (!selectedElementId) return;
-    applyElementUpdate((prev) => prev.filter((element) => element.id !== selectedElementId), { commit: true });
-    setSelectedElementId((prevId) => {
-      const remaining = elements.filter((element) => element.id !== prevId);
-      return remaining[0]?.id ?? null;
-    });
-  }, [selectedElementId, applyElementUpdate, elements]);
+  const handleDeleteElement = useCallback(
+    (id: string) => {
+      applyElementUpdate(
+        (prev) => {
+          const nextElements = prev.filter((element) => element.id !== id);
+          if (prev.length !== nextElements.length) {
+            setSelectedElementId((current) => (current === id ? nextElements[0]?.id ?? null : current));
+          }
+          return nextElements;
+        },
+        { commit: true }
+      );
+    },
+    [applyElementUpdate]
+  );
 
   const undo = useCallback(() => {
     setHistoryIndex((index) => {
@@ -159,17 +166,17 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
   const handlePanelStyleChange = useCallback(
     (style: Partial<Style>, options?: { commit?: boolean }) => {
       if (!selectedElementId) return;
-      updateElementStyle(selectedElementId, style, options);
+      handleStyleChange(selectedElementId, style, options);
     },
-    [selectedElementId, updateElementStyle]
+    [selectedElementId, handleStyleChange]
   );
 
   const handlePanelContentChange = useCallback(
     (content: string) => {
       if (!selectedElementId) return;
-      updateElementContent(selectedElementId, content);
+      handleContentChange(selectedElementId, content);
     },
-    [selectedElementId, updateElementContent]
+    [selectedElementId, handleContentChange]
   );
 
   const handleApplyFonts = useCallback(
@@ -319,10 +326,10 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
         <SettingsPanel
           elements={elements}
           selectedElement={selectedElement}
-          onAddElement={addElement}
+          onAddElement={handleAddElement}
           onStyleChange={handlePanelStyleChange}
           onContentChange={handlePanelContentChange}
-          onDelete={deleteElement}
+          onDeleteElement={handleDeleteElement}
           onApplyFonts={handleApplyFonts}
           onApplyPalette={handleApplyPalette}
         />
@@ -367,7 +374,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
             elements={elements}
             selectedElementId={selectedElementId}
             onSelectElement={setSelectedElementId}
-            onStyleChange={updateElementStyle}
+            onStyleChange={handleStyleChange}
           />
         </div>
       </div>
