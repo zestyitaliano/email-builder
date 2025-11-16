@@ -1,16 +1,19 @@
+import { redirect } from "next/navigation";
 import { EmailCanvasWorkspace } from "@/components/email-canvas/email-canvas-workspace";
 import { createBaseCanvasElements } from "@/lib/canvasPresets";
+import { createSupabaseServerClient } from "@/lib/supabaseServer";
 
-export default function NewCanvasTemplatePage() {
-  const initialElements = createBaseCanvasElements();
+export default async function NewCanvasTemplatePage() {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
 
-  return (
-    <section className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold text-slate-900">New Canvas Template</h1>
-        <p className="text-slate-600">Start a fresh canvas from the dashboard with the same tools as the main editor.</p>
-      </header>
-      <EmailCanvasWorkspace initialElements={initialElements} initialTemplateId={null} />
-    </section>
-  );
+  if (!user) {
+    redirect("/login");
+  }
+
+  const baseCanvasElements = createBaseCanvasElements();
+
+  return <EmailCanvasWorkspace initialElements={baseCanvasElements} initialTemplateId={null} />;
 }

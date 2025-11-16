@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { EmailCanvasWorkspace } from "@/components/email-canvas/email-canvas-workspace";
 import { createBaseCanvasElements } from "@/lib/canvasPresets";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
@@ -10,6 +10,15 @@ interface CanvasTemplatePageProps {
 
 export default async function CanvasTemplatePage({ params }: CanvasTemplatePageProps) {
   const supabase = createSupabaseServerClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const baseCanvasElements = createBaseCanvasElements();
   const { data, error } = await supabase
     .from("templates")
     .select("id,canvas_state")
@@ -21,7 +30,7 @@ export default async function CanvasTemplatePage({ params }: CanvasTemplatePageP
   }
 
   const canvasState = Array.isArray(data.canvas_state) ? (data.canvas_state as CanvasElement[]) : null;
-  const initialElements = canvasState && canvasState.length > 0 ? canvasState : createBaseCanvasElements();
+  const initialElements = canvasState && canvasState.length > 0 ? canvasState : baseCanvasElements;
 
-  return <EmailCanvasWorkspace initialElements={initialElements} initialTemplateId={data.id} />;
+  return <EmailCanvasWorkspace initialElements={initialElements} initialTemplateId={params.id} />;
 }
