@@ -32,8 +32,15 @@ export default async function DashboardLayout({ children }: { children: ReactNod
           <Link href="/dashboard" className="hover:text-slate-900">
             Overview
           </Link>
-          <Link href="/dashboard/templates" className="hover:text-slate-900">
-            Templates
+          <Link href="/dashboard/canvas-templates" className="hover:text-slate-900" title="Freeform, canvas-first editing">
+            Canvas Templates
+          </Link>
+          <Link
+            href="/dashboard/templates"
+            className="hover:text-slate-900"
+            title="Row-based templates for maximum email client compatibility"
+          >
+            Row Templates (Advanced)
           </Link>
           <Link href="/dashboard/assets" className="hover:text-slate-900">
             Assets

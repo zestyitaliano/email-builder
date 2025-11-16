@@ -158,3 +158,40 @@ export async function saveCanvasTemplate(templateId: string | null, elements: Ca
 
   return data.id;
 }
+
+export async function duplicateTemplate(id: string): Promise<string> {
+  const supabase = createSupabaseServerClient();
+  const {
+    data: { user },
+    error: userError
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("Not authenticated");
+  }
+
+  const { data: original, error: fetchError } = await supabase.from("templates").select("*").eq("id", id).single();
+
+  if (fetchError || !original) {
+    throw new Error("Template not found");
+  }
+
+  const { data: copy, error: insertError } = await supabase
+    .from("templates")
+    .insert({
+      user_id: user.id,
+      name: original.name || "Untitled Template",
+      subject: original.subject,
+      status: "draft",
+      builder_tree: original.builder_tree,
+      canvas_state: original.canvas_state
+    })
+    .select("id")
+    .single();
+
+  if (insertError || !copy) {
+    throw new Error("Failed to duplicate template");
+  }
+
+  return copy.id;
+}

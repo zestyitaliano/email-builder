@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Canvas } from "@/components/email-canvas/canvas";
 import { EmailPreviewDialog } from "@/components/email-canvas/email-preview-dialog";
@@ -31,6 +32,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
   const [history, setHistory] = useState<CanvasElement[][]>([cloneCanvasElements(initialElements)]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const historyIndexRef = useRef(0);
+  const preferencesAppliedRef = useRef(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [templateId, setTemplateId] = useState<string | null>(initialTemplateId ?? null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -181,6 +183,9 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
           ),
         { commit: true }
       );
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("email_canvas_last_font_family", fontFamily);
+      }
     },
     [applyElementUpdate]
   );
@@ -210,9 +215,12 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
               return { ...element, styles: { ...element.styles, color } };
             }
             return element;
-          }),
+        }),
         { commit: true }
       );
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem("email_canvas_last_palette_name", paletteName);
+      }
     },
     [applyElementUpdate]
   );
@@ -229,10 +237,69 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
       } catch (error) {
         console.error("Failed to save canvas template", error);
         setSaveStatus("error");
-        setSaveError("Failed to save template");
+        if (error instanceof Error && error.message === "Not authenticated") {
+          setSaveError("Please log in or sign up to save your canvas.");
+        } else {
+          setSaveError("Failed to save template");
+        }
       }
     });
   }, [elements, templateId]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (preferencesAppliedRef.current) return;
+    if (initialTemplateId !== null) return;
+
+    const storedFont = window.localStorage.getItem("email_canvas_last_font_family");
+    const storedPaletteName = window.localStorage.getItem("email_canvas_last_palette_name");
+
+    if (!storedFont && !storedPaletteName) {
+      preferencesAppliedRef.current = true;
+      return;
+    }
+
+    let updated = cloneCanvasElements(elements);
+    let changed = false;
+
+    if (storedFont) {
+      updated = updated.map((element) =>
+        element.type === "text" ? { ...element, styles: { ...element.styles, fontFamily: storedFont } } : element
+      );
+      changed = true;
+    }
+
+    if (storedPaletteName && palettePresets[storedPaletteName]) {
+      const storedPalette = palettePresets[storedPaletteName];
+      updated = updated.map((element) => {
+        if (element.type === "button") {
+          return {
+            ...element,
+            styles: {
+              ...element.styles,
+              backgroundColor: storedPalette.primary,
+              color: "#ffffff",
+              boxShadow: `0 10px 25px ${storedPalette.primary}33`
+            }
+          };
+        }
+        if (element.type === "text") {
+          const fontSize = typeof element.styles.fontSize === "number" ? element.styles.fontSize : Number(element.styles.fontSize) || 18;
+          const color = fontSize >= 28 ? storedPalette.primary : storedPalette.text;
+          return { ...element, styles: { ...element.styles, color } };
+        }
+        return element;
+      });
+      changed = true;
+    }
+
+    preferencesAppliedRef.current = true;
+    if (changed) {
+      setElements(updated);
+      setHistory([cloneCanvasElements(updated)]);
+      setHistoryIndex(0);
+    }
+  }, [elements, initialTemplateId]);
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
@@ -263,8 +330,8 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
           <header className="rounded-3xl bg-white/90 p-5 shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Email canvas</p>
-                <p className="text-2xl font-semibold text-slate-900">Firebase Studio inspired builder</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Canvas Editor</p>
+                <p className="text-2xl font-semibold text-slate-900">Freeform email canvas – design like Figma, export clean HTML.</p>
                 <p className="text-sm text-slate-500">History depth: {history.length}</p>
               </div>
               <div className="flex flex-col items-end gap-2">
@@ -280,9 +347,19 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
                     {isSaving ? "Saving" : "Save"}
                   </Button>
                 </div>
-                <p className={`text-xs ${saveStatus === "error" ? "text-rose-600" : "text-slate-500"}`}>
-                  {saveError ?? statusLabel}
-                </p>
+                {saveError === "Please log in or sign up to save your canvas." ? (
+                  <div className="flex items-center gap-3 text-sm text-rose-600">
+                    <span>{saveError}</span>
+                    <Link
+                      href="/login"
+                      className="rounded-full border border-rose-200 px-3 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                    >
+                      Log in
+                    </Link>
+                  </div>
+                ) : (
+                  <p className={`text-xs ${saveStatus === "error" ? "text-rose-600" : "text-slate-500"}`}>{saveError ?? statusLabel}</p>
+                )}
               </div>
             </div>
           </header>
