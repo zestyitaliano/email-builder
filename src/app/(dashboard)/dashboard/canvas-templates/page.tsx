@@ -23,28 +23,26 @@ export default async function CanvasTemplatesPage() {
 
   return (
     <section className="space-y-6">
-      <header className="flex flex-wrap items-center justify-between gap-4">
+      <header className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold text-slate-900">Canvas Templates</h1>
-          <p className="text-slate-600">Freeform canvas templates saved from the main editor.</p>
+          <h1 className="text-2xl font-semibold text-slate-900">Canvas templates</h1>
+          <p className="text-sm text-slate-600">
+            Saved canvas-based email layouts you can reuse and refine.
+          </p>
         </div>
-        <Link
-          href="/dashboard/canvas-templates/new"
-          className="inline-flex items-center justify-center rounded-full bg-[#3F51B5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#35449a]"
-        >
-          New Canvas Template
-        </Link>
+        <Button asChild>
+          <Link href="/dashboard/canvas-templates/new">New canvas template</Link>
+        </Button>
       </header>
       {(templates ?? []).length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-slate-200 bg-white p-12 text-center shadow-sm">
-          <h2 className="text-xl font-semibold text-slate-900">No canvas templates yet</h2>
-          <p className="max-w-xl text-slate-600">Design your first canvas and save it as a reusable template.</p>
-          <Link
-            href="/dashboard/canvas-templates/new"
-            className="inline-flex items-center justify-center rounded-full bg-[#3F51B5] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#35449a]"
-          >
-            Start a canvas
-          </Link>
+        <div className="mt-10 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-8 py-12 text-center">
+          <h2 className="text-lg font-semibold text-slate-900">No canvas templates yet</h2>
+          <p className="mt-2 max-w-md text-sm text-slate-600">
+            Start designing in the canvas and save your favorite layouts as reusable templates.
+          </p>
+          <Button asChild className="mt-6">
+            <Link href="/dashboard/canvas-templates/new">Create your first canvas template</Link>
+          </Button>
         </div>
       ) : (
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
