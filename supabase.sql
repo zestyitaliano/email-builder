@@ -26,6 +26,7 @@ create table if not exists public.templates (
   subject text,
   status text default 'draft',
   html text,
+  builder_tree jsonb default '[]'::jsonb,
   updated_at timestamptz default timezone('utc', now()) not null,
   inserted_at timestamptz default timezone('utc', now()) not null
 );
