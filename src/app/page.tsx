@@ -1,7 +1,10 @@
 import { EmailCanvasWorkspace } from "@/components/email-canvas/email-canvas-workspace";
 import { createBaseCanvasElements } from "@/lib/canvasPresets";
 
-export default function EmailCanvasPage() {
+export default function HomePage() {
   const initialElements = createBaseCanvasElements();
-  return <EmailCanvasWorkspace initialElements={initialElements} initialTemplateId={null} />;
+
+  return (
+    <EmailCanvasWorkspace initialElements={initialElements} initialTemplateId={null} />
+  );
 }
