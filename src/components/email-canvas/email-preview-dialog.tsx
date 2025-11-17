@@ -4,26 +4,26 @@ import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { CanvasElement } from "@/lib/types";
+import type { CanvasDocument } from "@/lib/types";
 import { exportToHtml } from "@/lib/actions";
 
 interface EmailPreviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  elements: CanvasElement[];
+  doc: CanvasDocument;
 }
 
-export function EmailPreviewDialog({ open, onOpenChange, elements }: EmailPreviewDialogProps) {
+export function EmailPreviewDialog({ open, onOpenChange, doc }: EmailPreviewDialogProps) {
   const [htmlContent, setHtmlContent] = useState<string>("");
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
     if (!open) return;
     startTransition(async () => {
-      const html = await exportToHtml(elements);
+      const html = await exportToHtml(doc);
       setHtmlContent(html);
     });
-  }, [open, elements]);
+  }, [open, doc]);
 
   if (!open) return null;
 

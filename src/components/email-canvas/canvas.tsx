@@ -1,11 +1,12 @@
 "use client";
 
 import type React from "react";
-import { useCallback, useEffect, useRef } from "react";
-import type { CanvasElement, Style } from "@/lib/types";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import type { CanvasElement, CanvasPageSettings, Style } from "@/lib/types";
 
 interface CanvasProps {
   elements: CanvasElement[];
+  page: CanvasPageSettings;
   selectedElementId: string | null;
   onSelectElement: (id: string | null) => void;
   onStyleChange: (id: string, style: Partial<Style>, options?: { commit?: boolean }) => void;
@@ -31,9 +32,26 @@ interface ResizeState {
   latestHeight: number;
 }
 
-export function Canvas({ elements, selectedElementId, onSelectElement, onStyleChange }: CanvasProps) {
+export function Canvas({ elements, page, selectedElementId, onSelectElement, onStyleChange }: CanvasProps) {
   const dragState = useRef<DragState | null>(null);
   const resizeState = useRef<ResizeState | null>(null);
+
+  const contentHeight = useMemo(() => {
+    if (page.height !== "auto" && page.height !== undefined) {
+      return Number(page.height);
+    }
+    const maxBottom = elements.reduce((max, element) => {
+      const top = Number(element.styles.top ?? 0);
+      const height =
+        element.styles.height !== undefined && element.styles.height !== null
+          ? Number(element.styles.height)
+          : 120;
+      return Math.max(max, top + height);
+    }, 0);
+    return Math.max(maxBottom + 160, 720);
+  }, [elements, page.height]);
+
+  const pageWidth = useMemo(() => Math.max(page.width, 320), [page.width]);
 
   const handleMouseMove = useCallback(
     (event: MouseEvent) => {
@@ -165,9 +183,26 @@ export function Canvas({ elements, selectedElementId, onSelectElement, onStyleCh
       className="relative flex flex-1 items-center justify-center bg-gradient-to-br from-[#E8EAF6] to-[#dfe3ff]"
       onClick={() => onSelectElement(null)}
     >
-      <div className="relative mx-auto flex h-[760px] w-[640px] items-center justify-center rounded-[40px] bg-gradient-to-b from-white to-[#f7f8ff] p-10 shadow-2xl">
-        <div className="relative h-full w-full rounded-[32px] bg-white shadow-lg">
-          {elements.map((element) => renderElement(element))}
+      <div
+        className="relative mx-auto flex items-center justify-center rounded-[40px] bg-gradient-to-b from-white to-[#f7f8ff] p-10 shadow-2xl"
+        style={{ width: pageWidth + page.padding * 2 + 80, minHeight: contentHeight + page.padding * 2 + 80 }}
+      >
+        <div
+          className="relative w-full rounded-[32px] shadow-lg"
+          style={{ maxWidth: pageWidth + page.padding * 2, backgroundColor: page.backgroundColor }}
+        >
+          <div
+            className="relative"
+            style={{
+              width: pageWidth,
+              minHeight: contentHeight,
+              height: page.height === "auto" ? undefined : contentHeight,
+              padding: page.padding,
+              margin: "0 auto"
+            }}
+          >
+            {elements.map((element) => renderElement(element))}
+          </div>
         </div>
       </div>
     </section>

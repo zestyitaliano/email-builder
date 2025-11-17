@@ -61,6 +61,71 @@ const baseElementStyles: Record<CanvasElementType, Style> = {
   }
 };
 
+export interface CanvasPageSettings {
+  width: number; // in px, e.g. 600
+  height: number | "auto"; // can start as "auto"
+  backgroundColor: string; // hex, e.g. "#ffffff"
+  padding: number; // px, e.g. 24
+}
+
+export interface TextStyle {
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  lineHeight: number;
+  letterSpacing?: number;
+}
+
+export interface CanvasDesignTokens {
+  textStyles: {
+    h1: TextStyle;
+    h2: TextStyle;
+    body: TextStyle;
+  };
+  colorSwatches: string[]; // hex codes like "#111827"
+}
+
+export interface CanvasDocument {
+  elements: CanvasElement[];
+  page: CanvasPageSettings;
+  tokens: CanvasDesignTokens;
+}
+
+export function createDefaultCanvasDocument(): CanvasDocument {
+  return {
+    elements: [],
+    page: {
+      width: 600,
+      height: "auto",
+      backgroundColor: "#ffffff",
+      padding: 24
+    },
+    tokens: {
+      textStyles: {
+        h1: {
+          fontFamily: "System UI",
+          fontSize: 28,
+          fontWeight: 700,
+          lineHeight: 1.2
+        },
+        h2: {
+          fontFamily: "System UI",
+          fontSize: 22,
+          fontWeight: 600,
+          lineHeight: 1.3
+        },
+        body: {
+          fontFamily: "System UI",
+          fontSize: 16,
+          fontWeight: 400,
+          lineHeight: 1.5
+        }
+      },
+      colorSwatches: ["#111827", "#2563EB", "#F97316", "#10B981"]
+    }
+  };
+}
+
 const defaultContent: Record<CanvasElementType, string> = {
   text: "Tell your story with confident typography.",
   image: "https://placehold.co/600x400",
