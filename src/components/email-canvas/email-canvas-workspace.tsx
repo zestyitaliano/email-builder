@@ -8,11 +8,22 @@ import { SettingsPanel } from "@/components/email-canvas/settings-panel";
 import { Button } from "@/components/ui/button";
 import { saveCanvasTemplate } from "@/lib/actions";
 import { createBaseCanvasElements } from "@/lib/canvasPresets";
-import { cloneCanvasElements, createCanvasElement } from "@/lib/types";
-import type { CanvasElement, CanvasElementType, Style } from "@/lib/types";
+import {
+  cloneCanvasElements,
+  createCanvasElement,
+  createDefaultCanvasDocument
+} from "@/lib/types";
+import type {
+  CanvasDesignTokens,
+  CanvasDocument,
+  CanvasElement,
+  CanvasElementType,
+  CanvasPageSettings,
+  Style
+} from "@/lib/types";
 
 interface EmailCanvasWorkspaceProps {
-  initialElements?: CanvasElement[];
+  initialDocument?: CanvasDocument;
   initialTemplateId?: string | null;
 }
 
@@ -27,15 +38,26 @@ const palettePresets: Record<string, { primary: string; accent: string; text: st
 
 const DEFAULT_PALETTE = palettePresets["Blue & Silver"];
 
-export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null }: EmailCanvasWorkspaceProps) {
-  const startingElements = useMemo(
-    () => cloneCanvasElements(initialElements ?? createBaseCanvasElements()),
-    [initialElements]
-  );
+export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null }: EmailCanvasWorkspaceProps) {
+  const seedDoc = useMemo(() => {
+    const defaults = createDefaultCanvasDocument();
+    if (initialDocument) {
+      return {
+        ...defaults,
+        ...initialDocument,
+        elements: cloneCanvasElements(initialDocument.elements ?? [])
+      };
+    }
+    return {
+      ...defaults,
+      elements: cloneCanvasElements(createBaseCanvasElements())
+    };
+  }, [initialDocument]);
 
-  const [elements, setElements] = useState<CanvasElement[]>(startingElements);
-  const [selectedElementId, setSelectedElementId] = useState<string | null>(startingElements[0]?.id ?? null);
-  const [history, setHistory] = useState<CanvasElement[][]>([cloneCanvasElements(startingElements)]);
+  const [doc, setDoc] = useState<CanvasDocument>(seedDoc);
+  const elements = doc.elements;
+  const [selectedElementId, setSelectedElementId] = useState<string | null>(elements[0]?.id ?? null);
+  const [history, setHistory] = useState<CanvasElement[][]>([cloneCanvasElements(elements)]);
   const [historyIndex, setHistoryIndex] = useState(0);
   const historyIndexRef = useRef(0);
   const preferencesAppliedRef = useRef(false);
@@ -52,7 +74,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
 
   useEffect(() => {
     setSaveStatus((current) => (current === "saving" ? current : "idle"));
-  }, [elements]);
+  }, [doc]);
 
   const pushHistory = useCallback((snapshot: CanvasElement[]) => {
     setHistory((prev) => {
@@ -67,12 +89,13 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
 
   const applyElementUpdate = useCallback(
     (updater: (current: CanvasElement[]) => CanvasElement[], options?: { commit?: boolean }) => {
-      setElements((prev) => {
-        const next = updater(prev);
+      setDoc((prev) => {
+        const nextElements = updater(prev.elements);
+        const nextDoc = { ...prev, elements: nextElements };
         if (options?.commit) {
-          pushHistory(next);
+          pushHistory(nextElements);
         }
-        return next;
+        return nextDoc;
       });
     },
     [pushHistory]
@@ -133,7 +156,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
       const nextIndex = index - 1;
       historyIndexRef.current = nextIndex;
       const snapshot = cloneCanvasElements(history[nextIndex] ?? []);
-      setElements(snapshot);
+      setDoc((prev) => ({ ...prev, elements: snapshot }));
       return nextIndex;
     });
   }, [history]);
@@ -144,7 +167,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
       const nextIndex = index + 1;
       historyIndexRef.current = nextIndex;
       const snapshot = cloneCanvasElements(history[nextIndex] ?? []);
-      setElements(snapshot);
+      setDoc((prev) => ({ ...prev, elements: snapshot }));
       return nextIndex;
     });
   }, [history]);
@@ -287,12 +310,80 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
     [applyElementUpdate]
   );
 
+  const updatePageSettings = useCallback((patch: Partial<CanvasPageSettings>) => {
+    setDoc((prev) => ({
+      ...prev,
+      page: { ...prev.page, ...patch }
+    }));
+  }, []);
+
+  const updateTokens = useCallback((patch: Partial<CanvasDesignTokens>) => {
+    setDoc((prev) => ({
+      ...prev,
+      tokens: {
+        ...prev.tokens,
+        ...patch,
+        textStyles: patch.textStyles
+          ? { ...prev.tokens.textStyles, ...patch.textStyles }
+          : prev.tokens.textStyles
+      }
+    }));
+  }, []);
+
+  const applyTextStyle = useCallback(
+    (variant: keyof CanvasDesignTokens["textStyles"]) => {
+      if (!selectedElement || selectedElement.type !== "text") return;
+      const style = doc.tokens.textStyles[variant];
+      if (!style) return;
+      updateElementStyle(selectedElement.id, style, { commit: true });
+    },
+    [doc.tokens.textStyles, selectedElement, updateElementStyle]
+  );
+
+  const applyColorSwatch = useCallback(
+    (color: string) => {
+      if (!selectedElement) return;
+      const stylePatch: Partial<Style> =
+        selectedElement.type === "text" ? { color } : { backgroundColor: color };
+      updateElementStyle(selectedElement.id, stylePatch, { commit: true });
+    },
+    [selectedElement, updateElementStyle]
+  );
+
+  const handleAddSwatch = useCallback(() => {
+    let newColor = "";
+    if (selectedElement) {
+      newColor =
+        selectedElement.type === "text"
+          ? String(selectedElement.styles.color ?? "")
+          : String(selectedElement.styles.backgroundColor ?? "");
+    }
+
+    if (!newColor) {
+      newColor = typeof window !== "undefined" ? window.prompt("Enter a hex color", "#111827") || "" : "";
+    }
+
+    if (!newColor) return;
+
+    setDoc((prev) => {
+      const nextSwatches = Array.from(new Set([...prev.tokens.colorSwatches, newColor]));
+      return { ...prev, tokens: { ...prev.tokens, colorSwatches: nextSwatches } };
+    });
+  }, [selectedElement]);
+
+  const handleRemoveSwatch = useCallback((color: string) => {
+    setDoc((prev) => ({
+      ...prev,
+      tokens: { ...prev.tokens, colorSwatches: prev.tokens.colorSwatches.filter((swatch) => swatch !== color) }
+    }));
+  }, []);
+
   const handleSave = useCallback(() => {
     setSaveError(null);
     setSaveStatus("saving");
     startSaveTransition(async () => {
       try {
-        const id = await saveCanvasTemplate(templateId, elements);
+        const id = await saveCanvasTemplate(templateId, doc);
         setTemplateId(id);
         setSaveStatus("saved");
         setLastSavedAt(new Date());
@@ -306,7 +397,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
         }
       }
     });
-  }, [elements, templateId]);
+  }, [doc, templateId]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -357,11 +448,11 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
 
     preferencesAppliedRef.current = true;
     if (changed) {
-      setElements(updated);
+      setDoc((prev) => ({ ...prev, elements: updated }));
       setHistory([cloneCanvasElements(updated)]);
       setHistoryIndex(0);
     }
-  }, [elements, initialTemplateId]);
+  }, [elements, initialTemplateId, setDoc]);
 
   const canUndo = historyIndex > 0;
   const canRedo = historyIndex < history.length - 1;
@@ -381,6 +472,8 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
         <SettingsPanel
           elements={elements}
           selectedElement={selectedElement}
+          pageSettings={doc.page}
+          tokens={doc.tokens}
           onAddElement={handleAddElement}
           onStyleChange={handlePanelStyleChange}
           onContentChange={handlePanelContentChange}
@@ -388,6 +481,12 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
           onDeleteElement={handleDeleteElement}
           onApplyFonts={handleApplyFonts}
           onApplyPalette={handleApplyPalette}
+          onPageSettingsChange={updatePageSettings}
+          onTokensChange={updateTokens}
+          onApplyTextStyle={applyTextStyle}
+          onApplyColorSwatch={applyColorSwatch}
+          onAddSwatch={handleAddSwatch}
+          onRemoveSwatch={handleRemoveSwatch}
         />
         <div className="flex flex-1 flex-col gap-4">
           <header className="rounded-3xl bg-white/90 p-5 shadow-sm">
@@ -428,13 +527,14 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
           </header>
           <Canvas
             elements={elements}
+            page={doc.page}
             selectedElementId={selectedElementId}
             onSelectElement={setSelectedElementId}
             onStyleChange={updateElementStyle}
           />
         </div>
       </div>
-      <EmailPreviewDialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen} elements={elements} />
+      <EmailPreviewDialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen} doc={doc} />
     </div>
   );
 }

@@ -2,7 +2,14 @@
 
 import { suggestImprovedEmailDesign } from "@/ai/flows/suggest-improved-email-design";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import type { CanvasElement, Style } from "@/lib/types";
+import type {
+  CanvasDesignTokens,
+  CanvasDocument,
+  CanvasElement,
+  CanvasPageSettings,
+  Style
+} from "@/lib/types";
+import { createDefaultCanvasDocument } from "@/lib/types";
 
 const LAYOUT_KEYS = new Set([
   "top",
@@ -90,9 +97,17 @@ const renderAbsoluteLayout = (elements: CanvasElement[]) =>
     .map((element) => `<div style="${buildWrapperStyle(element.styles)}">${renderElementContent(element)}</div>`)
     .join("");
 
-export async function exportToHtml(elements: CanvasElement[]): Promise<string> {
+export async function exportToHtml(doc: CanvasDocument): Promise<string> {
+  const { elements, page } = doc;
   const canvasHtml = renderAbsoluteLayout(elements);
-  const documentHtml = `<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Email Preview</title></head><body style="margin:0;padding:32px;background-color:#E8EAF6;font-family:Inter,Arial,sans-serif;"><table role="presentation" width="100%" style="width:100%;border-spacing:0;border-collapse:collapse;"><tr><td align="center" style="padding:0;"><table role="presentation" width="600" style="width:600px;border-spacing:0;border-collapse:collapse;background-color:#ffffff;border-radius:32px;box-shadow:0 20px 45px rgba(63,81,181,0.12);"><tr><td style="position:relative;height:720px;padding:48px 24px;background-image:linear-gradient(145deg,#f5f5ff,#ffffff);"><div style="position:relative;width:552px;height:624px;margin:0 auto;">${canvasHtml}</div></td></tr></table></td></tr></table></body></html>`;
+  const width = page.width ?? 600;
+  const bg = page.backgroundColor ?? "#ffffff";
+  const padding = page.padding ?? 24;
+  const heightAttr = page.height === "auto" || page.height === undefined ? "auto" : `${Number(page.height)}px`;
+  const minHeight = page.height === "auto" ? "720px" : heightAttr;
+  const contentWidth = Math.max(0, width - padding * 2);
+
+  const documentHtml = `<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Email Preview</title></head><body style="margin:0;padding:32px;background-color:#E8EAF6;font-family:Inter,Arial,sans-serif;"><table role="presentation" width="100%" style="width:100%;border-spacing:0;border-collapse:collapse;"><tr><td align="center" style="padding:0;"><table role="presentation" width="${width}" style="width:${width}px;border-spacing:0;border-collapse:collapse;background-color:${bg};border-radius:32px;box-shadow:0 20px 45px rgba(63,81,181,0.12);"><tr><td style="position:relative;height:${minHeight};padding:${padding}px;background-image:linear-gradient(145deg,#f5f5ff,#ffffff);"><div style="position:relative;width:${contentWidth}px;height:${heightAttr};min-height:${minHeight};margin:0 auto;">${canvasHtml}</div></td></tr></table></td></tr></table></body></html>`;
   return documentHtml;
 }
 
@@ -110,7 +125,48 @@ export async function getAiSuggestions(currentHtml: string) {
   }
 }
 
-export async function saveCanvasTemplate(templateId: string | null, elements: CanvasElement[]): Promise<string> {
+function normalizeCanvasState(raw: unknown): CanvasDocument {
+  const defaults = createDefaultCanvasDocument();
+
+  if (Array.isArray(raw)) {
+    return {
+      ...defaults,
+      elements: raw as CanvasElement[]
+    };
+  }
+
+  if (raw && typeof raw === "object") {
+    const obj = raw as Partial<CanvasDocument> & {
+      elements?: CanvasElement[];
+      page?: CanvasPageSettings;
+      tokens?: CanvasDesignTokens;
+    };
+    return {
+      elements: Array.isArray(obj.elements) ? (obj.elements as CanvasElement[]) : defaults.elements,
+      page: obj.page ?? defaults.page,
+      tokens: obj.tokens ?? defaults.tokens
+    };
+  }
+
+  return defaults;
+}
+
+export async function loadCanvasDocument(id: string): Promise<CanvasDocument> {
+  const supabase = createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("templates")
+    .select("canvas_state")
+    .eq("id", id)
+    .single();
+
+  if (error) {
+    throw new Error("Failed to load canvas template");
+  }
+
+  return normalizeCanvasState(data?.canvas_state);
+}
+
+export async function saveCanvasTemplate(templateId: string | null, doc: CanvasDocument): Promise<string> {
   const supabase = createSupabaseServerClient();
   const {
     data: { user },
@@ -128,7 +184,7 @@ export async function saveCanvasTemplate(templateId: string | null, elements: Ca
         user_id: user.id,
         name: "New Canvas Template",
         status: "draft",
-        canvas_state: elements
+        canvas_state: doc
       })
       .select("id")
       .single();
@@ -144,7 +200,7 @@ export async function saveCanvasTemplate(templateId: string | null, elements: Ca
   const { data, error } = await supabase
     .from("templates")
     .update({
-      canvas_state: elements,
+      canvas_state: doc,
       updated_at: new Date().toISOString()
     })
     .eq("id", templateId)

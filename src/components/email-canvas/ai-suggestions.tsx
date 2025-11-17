@@ -4,16 +4,16 @@ import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { CanvasElement } from "@/lib/types";
+import type { CanvasDocument } from "@/lib/types";
 import { exportToHtml, getAiSuggestions } from "@/lib/actions";
 
 interface AiSuggestionsProps {
-  elements: CanvasElement[];
+  doc: CanvasDocument;
   onApplyFonts?: (fonts: string[]) => void;
   onApplyPalette?: (palettes: string[]) => void;
 }
 
-export function AiSuggestions({ elements, onApplyFonts, onApplyPalette }: AiSuggestionsProps) {
+export function AiSuggestions({ doc, onApplyFonts, onApplyPalette }: AiSuggestionsProps) {
   const [result, setResult] = useState<{ suggestedFonts: string[]; suggestedColorPalettes: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -21,7 +21,7 @@ export function AiSuggestions({ elements, onApplyFonts, onApplyPalette }: AiSugg
   const handleAskAi = () => {
     setError(null);
     startTransition(async () => {
-      const html = await exportToHtml(elements);
+      const html = await exportToHtml(doc);
       const response = await getAiSuggestions(html);
       if ("error" in response && response.error) {
         setError(response.error);
