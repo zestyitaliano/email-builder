@@ -112,6 +112,32 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
     [applyElementUpdate]
   );
 
+  const nudgeSelectedElement = useCallback(
+    (dx: number, dy: number) => {
+      if (!selectedElementId) return;
+      applyElementUpdate(
+        (prev) =>
+          prev.map((el) => {
+            if (el.id !== selectedElementId) return el;
+            const currentTop =
+              typeof el.styles.top === "number" ? el.styles.top : Number(el.styles.top) || 0;
+            const currentLeft =
+              typeof el.styles.left === "number" ? el.styles.left : Number(el.styles.left) || 0;
+            return {
+              ...el,
+              styles: {
+                ...el.styles,
+                top: currentTop + dy,
+                left: currentLeft + dx
+              }
+            };
+          }),
+        { commit: true }
+      );
+    },
+    [applyElementUpdate, selectedElementId]
+  );
+
   const updateElementStyle = useCallback(
     (id: string, style: Partial<Style>, options?: { commit?: boolean }) => {
       applyElementUpdate(
@@ -176,7 +202,6 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
     const handleKey = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement | null;
       const tag = target?.tagName ?? "";
-      if (["INPUT", "TEXTAREA"].includes(tag)) return;
       if ((event.metaKey || event.ctrlKey) && !event.shiftKey && event.key.toLowerCase() === "z") {
         event.preventDefault();
         undo();
@@ -189,42 +214,33 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
         redo();
       }
 
+      if (["INPUT", "TEXTAREA"].includes(tag)) return;
       if (!selectedElementId) return;
       if (event.altKey) return;
       if (!event.key.startsWith("Arrow")) return;
 
-      const selected = elements.find((element) => element.id === selectedElementId);
-      if (!selected) return;
-
-      const nudgeAmount = event.shiftKey ? 5 : 1;
-      const currentTop =
-        typeof selected.styles.top === "number" ? selected.styles.top : Number(selected.styles.top) || 0;
-      const currentLeft =
-        typeof selected.styles.left === "number" ? selected.styles.left : Number(selected.styles.left) || 0;
-
-      const stylePatch: Partial<Style> = {};
+      const step = event.shiftKey ? 5 : 1;
 
       if (event.key === "ArrowUp") {
-        stylePatch.top = currentTop - nudgeAmount;
+        event.preventDefault();
+        nudgeSelectedElement(0, -step);
       }
       if (event.key === "ArrowDown") {
-        stylePatch.top = currentTop + nudgeAmount;
+        event.preventDefault();
+        nudgeSelectedElement(0, step);
       }
       if (event.key === "ArrowLeft") {
-        stylePatch.left = currentLeft - nudgeAmount;
+        event.preventDefault();
+        nudgeSelectedElement(-step, 0);
       }
       if (event.key === "ArrowRight") {
-        stylePatch.left = currentLeft + nudgeAmount;
-      }
-
-      if (Object.keys(stylePatch).length) {
         event.preventDefault();
-        updateElementStyle(selectedElementId, stylePatch, { commit: true });
+        nudgeSelectedElement(step, 0);
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [undo, redo, selectedElementId, elements, updateElementStyle]);
+  }, [undo, redo, selectedElementId, nudgeSelectedElement]);
 
   const selectedElement = useMemo(
     () => elements.find((element) => element.id === selectedElementId) ?? null,
