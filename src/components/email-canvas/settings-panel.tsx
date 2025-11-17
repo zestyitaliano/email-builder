@@ -94,6 +94,7 @@ export function SettingsPanel({
       },
       { commit: true }
     );
+    onElementMetaChange?.(selectedElement.id, { textStyleKey: styleKey });
   };
 
   const applySwatch = (hex: string) => {

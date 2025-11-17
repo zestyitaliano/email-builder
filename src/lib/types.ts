@@ -8,6 +8,8 @@ export interface Style extends React.CSSProperties {
 
 export type CanvasElementType = "text" | "image" | "button";
 
+export type TextStyleKey = "h1" | "h2" | "body" | null;
+
 export interface CanvasElement {
   id: string;
   type: CanvasElementType;
@@ -18,6 +20,7 @@ export interface CanvasElement {
   openInNewTab?: boolean;
   maintainAspectRatio?: boolean;
   intrinsicAspectRatio?: number; // width / height
+  textStyleKey?: TextStyleKey;
 }
 
 export interface CanvasPageSettings {
@@ -96,10 +99,10 @@ const baseElementStyles: Record<CanvasElementType, Style> = {
     width: 360,
     minHeight: 48,
     color: "#111827",
-    fontSize: 20,
-    fontWeight: 600,
-    fontFamily: "Inter, 'Helvetica Neue', Arial, sans-serif",
-    lineHeight: 1.4,
+    fontSize: 16,
+    fontWeight: 400,
+    fontFamily: "Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+    lineHeight: 1.5,
     textAlign: "left",
     zIndex: 1
   },
@@ -145,6 +148,10 @@ export const createCanvasElement = (type: CanvasElementType): CanvasElement => {
     styles: { ...baseElementStyles[type] }
   };
 
+  if (type === "text") {
+    return { ...base, textStyleKey: "body" };
+  }
+
   if (type === "image") {
     return { ...base, imageUrl: undefined };
   }
@@ -154,6 +161,22 @@ export const createCanvasElement = (type: CanvasElementType): CanvasElement => {
   }
 
   return base;
+};
+
+export const createTextElementWithTokens = (tokens: CanvasDesignTokens): CanvasElement => {
+  const element = createCanvasElement("text");
+  const { body } = tokens.textStyles;
+  return {
+    ...element,
+    textStyleKey: "body",
+    styles: {
+      ...element.styles,
+      fontFamily: body.fontFamily,
+      fontSize: body.fontSize,
+      fontWeight: body.fontWeight,
+      lineHeight: body.lineHeight
+    }
+  };
 };
 
 export const cloneCanvasElements = (elements: CanvasElement[]): CanvasElement[] =>

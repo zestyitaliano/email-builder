@@ -11,6 +11,7 @@ import { createBaseCanvasElements } from "@/lib/canvasPresets";
 import {
   cloneCanvasElements,
   createCanvasElement,
+  createTextElementWithTokens,
   createDefaultCanvasDocument
 } from "@/lib/types";
 import type {
@@ -98,13 +99,14 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
 
   const handleAddElement = useCallback(
     (type: CanvasElementType) => {
-      const newElement = createCanvasElement(type);
+      const newElement =
+        type === "text" ? createTextElementWithTokens(doc.tokens) : createCanvasElement(type);
       newElement.styles.top = 160 + Math.random() * 120;
       newElement.styles.left = 140 + Math.random() * 120;
       applyElementUpdate((prev) => [...prev, newElement], { commit: true });
       setSelectedElementId(newElement.id);
     },
-    [applyElementUpdate]
+    [applyElementUpdate, doc.tokens]
   );
 
   const handleLayerChange = useCallback(

@@ -2,7 +2,7 @@
 
 import { suggestImprovedEmailDesign } from "@/ai/flows/suggest-improved-email-design";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import type { CanvasDocument, CanvasElement, Style } from "@/lib/types";
+import type { CanvasDesignTokens, CanvasDocument, CanvasElement, Style, TextStyle } from "@/lib/types";
 import { createDefaultCanvasDocument } from "@/lib/types";
 
 const LAYOUT_KEYS = new Set([
@@ -26,6 +26,18 @@ const escapeHtml = (value: string) =>
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+
+function buildTokenCss(tokens: CanvasDesignTokens): string {
+  const { textStyles } = tokens;
+  const makeRule = (selector: string, ts: TextStyle) =>
+    `${selector}{font-family:${ts.fontFamily};font-size:${ts.fontSize}px;font-weight:${ts.fontWeight};line-height:${ts.lineHeight};}`;
+
+  return [
+    makeRule(".token-h1", textStyles.h1),
+    makeRule(".token-h2", textStyles.h2),
+    makeRule(".token-body", textStyles.body)
+  ].join("");
+}
 
 function styleObjectToInline(style: Style): string {
   return Object.entries(style)
@@ -70,7 +82,8 @@ const buildWrapperStyle = (styles: Style) => {
 const renderElementContent = (element: CanvasElement) => {
   const inlineStyles = styleObjectToInline(element.styles);
   if (element.type === "text") {
-    return `<div style="${inlineStyles}">${escapeHtml(element.content)}</div>`;
+    const textClass = element.textStyleKey ? ` class="token-${element.textStyleKey}"` : "";
+    return `<div${textClass} style="${inlineStyles}">${escapeHtml(element.content)}</div>`;
   }
   if (element.type === "image") {
     const src = element.imageUrl || element.content || "https://placehold.co/600x400";
@@ -94,6 +107,7 @@ const renderAbsoluteLayout = (elements: CanvasElement[]) =>
 export async function exportToHtml(doc: CanvasDocument): Promise<string> {
   const { elements, page } = doc;
   const canvasHtml = renderAbsoluteLayout(elements);
+  const tokenCss = buildTokenCss(doc.tokens);
   const width = page.width ?? 600;
   const bg = page.backgroundColor ?? "#ffffff";
   const padding = page.padding ?? 24;
@@ -114,7 +128,7 @@ export async function exportToHtml(doc: CanvasDocument): Promise<string> {
   const heightAttr = `${contentHeight}px`;
   const contentWidth = Math.max(0, width - padding * 2);
 
-  const documentHtml = `<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Email Preview</title></head><body style="margin:0;padding:32px;background-color:${bg};font-family:Inter,Arial,sans-serif;"><table role="presentation" width="100%" style="width:100%;border-spacing:0;border-collapse:collapse;"><tr><td align="center" style="padding:0;"><table role="presentation" width="${width}" style="width:${width}px;border-spacing:0;border-collapse:collapse;background-color:${bg};border-radius:32px;box-shadow:0 20px 45px rgba(63,81,181,0.12);"><tr><td style="position:relative;padding:${padding}px;background-color:${bg};"><div style="position:relative;width:${contentWidth}px;height:${heightAttr};margin:0 auto;">${canvasHtml}</div></td></tr></table></td></tr></table></body></html>`;
+  const documentHtml = `<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Email Preview</title><style type="text/css">${tokenCss}</style></head><body style="margin:0;padding:32px;background-color:${bg};font-family:Inter,Arial,sans-serif;"><table role="presentation" width="100%" style="width:100%;border-spacing:0;border-collapse:collapse;"><tr><td align="center" style="padding:0;"><table role="presentation" width="${width}" style="width:${width}px;border-spacing:0;border-collapse:collapse;background-color:${bg};border-radius:32px;box-shadow:0 20px 45px rgba(63,81,181,0.12);"><tr><td style="position:relative;padding:${padding}px;background-color:${bg};"><div style="position:relative;width:${contentWidth}px;height:${heightAttr};margin:0 auto;">${canvasHtml}</div></td></tr></table></td></tr></table></body></html>`;
   return documentHtml;
 }
 
