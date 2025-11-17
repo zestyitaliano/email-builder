@@ -28,8 +28,6 @@ interface ResizeState {
   startY: number;
   startWidth: number;
   startHeight: number;
-  latestWidth: number;
-  latestHeight: number;
 }
 
 export function Canvas({ elements, page, selectedElementId, onSelectElement, onStyleChange }: CanvasProps) {
@@ -53,58 +51,77 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
 
   const pageWidth = useMemo(() => Math.max(page.width, 320), [page.width]);
 
-  const handleMouseMove = useCallback(
+  const handleDragMouseMove = useCallback(
     (event: MouseEvent) => {
-      if (!dragState.current && !resizeState.current) return;
+      if (!dragState.current) return;
       event.preventDefault();
 
-      if (dragState.current) {
-        const deltaX = event.clientX - dragState.current.startX;
-        const deltaY = event.clientY - dragState.current.startY;
-        const nextTop = dragState.current.originTop + deltaY;
-        const nextLeft = dragState.current.originLeft + deltaX;
-        dragState.current = { ...dragState.current, latestTop: nextTop, latestLeft: nextLeft };
-        onStyleChange(dragState.current.id, { top: nextTop, left: nextLeft }, { commit: false });
-      }
-
-      if (resizeState.current) {
-        const deltaX = event.clientX - resizeState.current.startX;
-        const deltaY = event.clientY - resizeState.current.startY;
-        const nextWidth = Math.max(32, resizeState.current.startWidth + deltaX);
-        const nextHeight = Math.max(32, resizeState.current.startHeight + deltaY);
-        resizeState.current = { ...resizeState.current, latestWidth: nextWidth, latestHeight: nextHeight };
-        onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: false });
-      }
+      const deltaX = event.clientX - dragState.current.startX;
+      const deltaY = event.clientY - dragState.current.startY;
+      const nextTop = dragState.current.originTop + deltaY;
+      const nextLeft = dragState.current.originLeft + deltaX;
+      dragState.current = { ...dragState.current, latestTop: nextTop, latestLeft: nextLeft };
+      onStyleChange(dragState.current.id, { top: nextTop, left: nextLeft }, { commit: false });
     },
     [onStyleChange]
   );
 
-  const handleMouseUp = useCallback(() => {
+  const stopDragging = useCallback(() => {
     if (dragState.current) {
       const { id, latestTop, latestLeft } = dragState.current;
       onStyleChange(id, { top: latestTop, left: latestLeft }, { commit: true });
       dragState.current = null;
     }
 
-    if (resizeState.current) {
-      const { id, latestWidth, latestHeight } = resizeState.current;
-      onStyleChange(id, { width: latestWidth, height: latestHeight }, { commit: true });
-      resizeState.current = null;
-    }
+    window.removeEventListener("mousemove", handleDragMouseMove);
+    window.removeEventListener("mouseup", stopDragging);
+  }, [handleDragMouseMove, onStyleChange]);
 
-    window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("mouseup", handleMouseUp);
-  }, [handleMouseMove, onStyleChange]);
+  const handleResizeMouseMove = useCallback(
+    (event: MouseEvent) => {
+      if (!resizeState.current) return;
+
+      const dx = event.clientX - resizeState.current.startX;
+      const dy = event.clientY - resizeState.current.startY;
+      const nextWidth = Math.max(32, resizeState.current.startWidth + dx);
+      const nextHeight = Math.max(32, resizeState.current.startHeight + dy);
+
+      onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: false });
+    },
+    [onStyleChange]
+  );
+
+  const handleResizeMouseUp = useCallback(
+    (event: MouseEvent) => {
+      if (resizeState.current) {
+        const dx = event.clientX - resizeState.current.startX;
+        const dy = event.clientY - resizeState.current.startY;
+        const nextWidth = Math.max(32, resizeState.current.startWidth + dx);
+        const nextHeight = Math.max(32, resizeState.current.startHeight + dy);
+
+        onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: true });
+        resizeState.current = null;
+      }
+
+      window.removeEventListener("mousemove", handleResizeMouseMove);
+      window.removeEventListener("mouseup", handleResizeMouseUp);
+    },
+    [handleResizeMouseMove, onStyleChange]
+  );
 
   useEffect(() => {
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
+      window.removeEventListener("mousemove", handleDragMouseMove);
+      window.removeEventListener("mouseup", stopDragging);
+      window.removeEventListener("mousemove", handleResizeMouseMove);
+      window.removeEventListener("mouseup", handleResizeMouseUp);
     };
-  }, [handleMouseMove, handleMouseUp]);
+  }, [handleDragMouseMove, stopDragging, handleResizeMouseMove, handleResizeMouseUp]);
 
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>, element: CanvasElement) => {
     if (event.button !== 0) return;
+    const target = event.target as HTMLElement;
+    if (target.closest("[data-resize-handle='true']")) return;
     event.stopPropagation();
     onSelectElement(element.id);
     const { top = 0, left = 0 } = element.styles;
@@ -117,30 +134,29 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
       latestTop: Number(top),
       latestLeft: Number(left)
     };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mousemove", handleDragMouseMove);
+    window.addEventListener("mouseup", stopDragging);
   };
 
   const handleResizeMouseDown = (event: React.MouseEvent<HTMLDivElement>, element: CanvasElement) => {
     if (event.button !== 0) return;
     event.stopPropagation();
-    event.preventDefault();
     onSelectElement(element.id);
-    const width = Number(element.styles.width ?? 200) || 200;
-    const height = Number(element.styles.height ?? 100) || 100;
+    const width =
+      typeof element.styles.width === "number" ? element.styles.width : Number(element.styles.width) || 200;
+    const height =
+      typeof element.styles.height === "number" ? element.styles.height : Number(element.styles.height) || 80;
 
     resizeState.current = {
       id: element.id,
       startX: event.clientX,
       startY: event.clientY,
       startWidth: width,
-      startHeight: height,
-      latestWidth: width,
-      latestHeight: height
+      startHeight: height
     };
 
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
+    window.addEventListener("mousemove", handleResizeMouseMove);
+    window.addEventListener("mouseup", handleResizeMouseUp);
   };
 
   const renderElement = (element: CanvasElement) => {
@@ -169,9 +185,10 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
         {renderInnerElement(element, style)}
         {isSelected ? (
           <div
+            className="absolute h-3 w-3 translate-x-1/2 translate-y-1/2 rounded-full border border-slate-500 bg-white"
+            style={{ right: 0, bottom: 0, cursor: "nwse-resize" }}
+            data-resize-handle="true"
             onMouseDown={(event) => handleResizeMouseDown(event, element)}
-            className="absolute -right-1.5 -bottom-1.5 h-3 w-3 rounded-[4px] bg-[#7953D2] shadow ring-4 ring-white ring-offset-0"
-            style={{ cursor: "nwse-resize" }}
           />
         ) : null}
       </div>
