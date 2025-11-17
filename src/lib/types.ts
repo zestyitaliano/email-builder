@@ -12,6 +12,9 @@ export interface CanvasElement {
   type: CanvasElementType;
   content: string;
   styles: Style;
+  imageUrl?: string;
+  linkUrl?: string;
+  openInNewTab?: boolean;
 }
 
 const randomId = () =>
@@ -60,16 +63,28 @@ const baseElementStyles: Record<CanvasElementType, Style> = {
 
 const defaultContent: Record<CanvasElementType, string> = {
   text: "Tell your story with confident typography.",
-  image: "Hero image",
+  image: "https://placehold.co/600x400",
   button: "Explore now"
 };
 
-export const createCanvasElement = (type: CanvasElementType): CanvasElement => ({
-  id: `${type}-${randomId()}`,
-  type,
-  content: defaultContent[type],
-  styles: { ...baseElementStyles[type] }
-});
+export const createCanvasElement = (type: CanvasElementType): CanvasElement => {
+  const base: CanvasElement = {
+    id: `${type}-${randomId()}`,
+    type,
+    content: defaultContent[type],
+    styles: { ...baseElementStyles[type] }
+  };
+
+  if (type === "image") {
+    return { ...base, imageUrl: undefined };
+  }
+
+  if (type === "button") {
+    return { ...base, linkUrl: undefined, openInNewTab: false };
+  }
+
+  return base;
+};
 
 export const cloneCanvasElements = (elements: CanvasElement[]): CanvasElement[] =>
   elements.map((element) => ({ ...element, styles: { ...element.styles } }));
@@ -95,11 +110,11 @@ export const migrateBuilderNode = (node: BuilderNode, index = 0): CanvasElement 
     return {
       id: node.id,
       type: "image",
-      content: node.props.alt,
+      content: node.props.url ?? node.props.alt,
+      imageUrl: node.props.url,
       styles: {
         ...baseElementStyles.image,
         width: node.props.width,
-        src: node.props.url,
         top: 140 + index * 140
       }
     };
@@ -109,6 +124,7 @@ export const migrateBuilderNode = (node: BuilderNode, index = 0): CanvasElement 
     id: node.id,
     type: "button",
     content: node.props.label,
+    linkUrl: node.props.link,
     styles: {
       ...baseElementStyles.button,
       backgroundColor: node.props.variant === "primary" ? "#3F51B5" : "#ffffff",

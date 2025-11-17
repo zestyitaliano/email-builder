@@ -27,8 +27,8 @@ export const createBaseCanvasElements = (): CanvasElement[] => {
   heroImage.styles.width = 220;
   heroImage.styles.height = 320;
   heroImage.styles.borderRadius = 24;
-  heroImage.styles.src = PLACEHOLDER_IMAGES[0].url;
-  heroImage.content = PLACEHOLDER_IMAGES[0].label;
+  heroImage.imageUrl = PLACEHOLDER_IMAGES[0].url;
+  heroImage.content = PLACEHOLDER_IMAGES[0].label || heroImage.content;
 
   const cta = createCanvasElement("button");
   cta.content = "Preview canvas";

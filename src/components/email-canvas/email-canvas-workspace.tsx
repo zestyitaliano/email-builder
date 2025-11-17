@@ -224,6 +224,16 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
     [selectedElementId, handleContentChange]
   );
 
+  const handleElementMetaChange = useCallback(
+    (id: string, patch: Partial<CanvasElement>, options: { commit?: boolean } = { commit: true }) => {
+      applyElementUpdate(
+        (prev) => prev.map((element) => (element.id === id ? { ...element, ...patch } : element)),
+        options
+      );
+    },
+    [applyElementUpdate]
+  );
+
   const handleApplyFonts = useCallback(
     (fonts: string[]) => {
       if (!fonts.length) return;
@@ -374,6 +384,7 @@ export function EmailCanvasWorkspace({ initialElements, initialTemplateId = null
           onAddElement={handleAddElement}
           onStyleChange={handlePanelStyleChange}
           onContentChange={handlePanelContentChange}
+          onElementMetaChange={handleElementMetaChange}
           onDeleteElement={handleDeleteElement}
           onApplyFonts={handleApplyFonts}
           onApplyPalette={handleApplyPalette}

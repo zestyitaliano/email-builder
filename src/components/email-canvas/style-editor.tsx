@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,12 +10,15 @@ interface StyleEditorProps {
   element: CanvasElement;
   onStyleChange: (style: Partial<Style>, options?: { commit?: boolean }) => void;
   onContentChange: (content: string) => void;
+  onElementMetaChange: (id: string, patch: Partial<CanvasElement>, options?: { commit?: boolean }) => void;
   onDelete: () => void;
 }
 
 const fontFamilies = ["Inter", "Roboto", "Lato", "Playfair Display", "Space Grotesk"];
 
-export function StyleEditor({ element, onStyleChange, onContentChange, onDelete }: StyleEditorProps) {
+export function StyleEditor({ element, onStyleChange, onContentChange, onElementMetaChange, onDelete }: StyleEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const handleNumberChange = (key: keyof Style) => (event: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(event.target.value);
     if (Number.isNaN(value)) return;
@@ -42,6 +46,20 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onDelete 
 
   const handleSliderCommit = (key: keyof Style) => (value: number) => {
     onStyleChange({ [key]: value }, { commit: true });
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        onElementMetaChange(element.id, { imageUrl: reader.result }, { commit: true });
+      }
+    };
+    reader.readAsDataURL(file);
+    event.target.value = "";
   };
 
   return (
@@ -153,8 +171,82 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onDelete 
                 />
               </div>
             </div>
+            <div>
+              <p className="text-xs font-medium text-slate-500">Border radius</p>
+              <Slider
+                min={0}
+                max={48}
+                value={Number(element.styles.borderRadius ?? 0)}
+                onChange={handleSliderChange("borderRadius")}
+                onMouseUp={(event) => handleSliderCommit("borderRadius")(Number(event.currentTarget.value))}
+                onTouchEnd={(event) => handleSliderCommit("borderRadius")(Number(event.currentTarget.value))}
+              />
+            </div>
           </AccordionContent>
         </AccordionItem>
+        {element.type === "image" ? (
+          <AccordionItem value="image">
+            <AccordionTrigger value="image">Image</AccordionTrigger>
+            <AccordionContent value="image" className="space-y-3">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-slate-500">Image URL</p>
+                <Input
+                  type="text"
+                  value={element.imageUrl ?? element.content ?? ""}
+                  onChange={(event) =>
+                    onElementMetaChange(element.id, { imageUrl: event.target.value }, { commit: false })
+                  }
+                  onBlur={(event) =>
+                    onElementMetaChange(element.id, { imageUrl: event.target.value }, { commit: true })
+                  }
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                <Button type="button" variant="secondary" className="w-full" onClick={() => fileInputRef.current?.click()}>
+                  Upload image
+                </Button>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        ) : null}
+        {element.type === "button" ? (
+          <AccordionItem value="button">
+            <AccordionTrigger value="button">Button</AccordionTrigger>
+            <AccordionContent value="button" className="space-y-3">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-slate-500">Link URL</p>
+                <Input
+                  type="text"
+                  value={element.linkUrl ?? ""}
+                  onChange={(event) =>
+                    onElementMetaChange(element.id, { linkUrl: event.target.value }, { commit: false })
+                  }
+                  onBlur={(event) => onElementMetaChange(element.id, { linkUrl: event.target.value }, { commit: true })}
+                  placeholder="https://example.com"
+                />
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-[#3F51B5] focus:ring-0"
+                  checked={Boolean(element.openInNewTab)}
+                  onChange={(event) =>
+                    onElementMetaChange(element.id, { openInNewTab: event.target.checked }, { commit: true })
+                  }
+                />
+                Open in new tab
+              </label>
+            </AccordionContent>
+          </AccordionItem>
+        ) : null}
       </Accordion>
       <Button variant="danger" className="w-full" onClick={onDelete}>
         Delete element
