@@ -10,7 +10,7 @@ interface StyleEditorProps {
   element: CanvasElement;
   onStyleChange: (style: Partial<Style>, options?: { commit?: boolean }) => void;
   onContentChange: (content: string) => void;
-  onElementMetaChange: (id: string, patch: Partial<CanvasElement>, options?: { commit?: boolean }) => void;
+  onElementMetaChange?: (id: string, patch: Partial<CanvasElement>) => void;
   onDelete: () => void;
 }
 
@@ -55,7 +55,8 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
     const reader = new FileReader();
     reader.onload = () => {
       if (typeof reader.result === "string") {
-        onElementMetaChange(element.id, { imageUrl: reader.result }, { commit: true });
+        onStyleChange({ src: reader.result }, { commit: true });
+        onElementMetaChange?.(element.id, { imageUrl: reader.result });
       }
     };
     reader.readAsDataURL(file);
@@ -192,13 +193,17 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
                 <p className="text-xs font-medium text-slate-500">Image URL</p>
                 <Input
                   type="text"
-                  value={element.imageUrl ?? element.content ?? ""}
-                  onChange={(event) =>
-                    onElementMetaChange(element.id, { imageUrl: event.target.value }, { commit: false })
-                  }
-                  onBlur={(event) =>
-                    onElementMetaChange(element.id, { imageUrl: event.target.value }, { commit: true })
-                  }
+                  value={element.imageUrl ?? String(element.styles.src ?? "")}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    onStyleChange({ src: value }, { commit: false });
+                    onElementMetaChange?.(element.id, { imageUrl: value });
+                  }}
+                  onBlur={(event) => {
+                    const value = event.target.value;
+                    onStyleChange({ src: value }, { commit: true });
+                    onElementMetaChange?.(element.id, { imageUrl: value });
+                  }}
                   placeholder="https://..."
                 />
               </div>
@@ -226,10 +231,8 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
                 <Input
                   type="text"
                   value={element.linkUrl ?? ""}
-                  onChange={(event) =>
-                    onElementMetaChange(element.id, { linkUrl: event.target.value }, { commit: false })
-                  }
-                  onBlur={(event) => onElementMetaChange(element.id, { linkUrl: event.target.value }, { commit: true })}
+                  onChange={(event) => onElementMetaChange?.(element.id, { linkUrl: event.target.value })}
+                  onBlur={(event) => onElementMetaChange?.(element.id, { linkUrl: event.target.value })}
                   placeholder="https://example.com"
                 />
               </div>
@@ -238,9 +241,7 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
                   type="checkbox"
                   className="h-4 w-4 rounded border-slate-300 text-[#3F51B5] focus:ring-0"
                   checked={Boolean(element.openInNewTab)}
-                  onChange={(event) =>
-                    onElementMetaChange(element.id, { openInNewTab: event.target.checked }, { commit: true })
-                  }
+                  onChange={(event) => onElementMetaChange?.(element.id, { openInNewTab: event.target.checked })}
                 />
                 Open in new tab
               </label>

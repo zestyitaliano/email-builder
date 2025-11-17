@@ -219,8 +219,10 @@ const renderInnerElement = (element: CanvasElement, style: Style) => {
   }
 
   if (element.type === "image") {
-    const src = element.imageUrl || element.content || "https://placehold.co/600x400";
-    const { objectFit, borderRadius, ...rest } = style;
+    const { objectFit, borderRadius, src: styleSrc, ...rest } = style;
+    const src =
+      element.imageUrl ||
+      (typeof styleSrc === "string" && styleSrc.length > 0 ? styleSrc : "https://placehold.co/600x400");
     return (
       <img
         src={src}

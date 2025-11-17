@@ -12,7 +12,7 @@ export interface CanvasElement {
   type: CanvasElementType;
   content: string;
   styles: Style;
-  imageUrl?: string;
+  imageUrl?: string; // used for type === "image"
   linkUrl?: string;
   openInNewTab?: boolean;
 }
