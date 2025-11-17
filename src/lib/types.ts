@@ -15,6 +15,8 @@ export interface CanvasElement {
   imageUrl?: string; // used for type === "image"
   linkUrl?: string;
   openInNewTab?: boolean;
+  maintainAspectRatio?: boolean;
+  intrinsicAspectRatio?: number; // width / height
 }
 
 export interface CanvasPageSettings {

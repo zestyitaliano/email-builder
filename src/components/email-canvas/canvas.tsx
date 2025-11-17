@@ -97,10 +97,18 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
       const element = elements.find((item) => item.id === resizeState.current?.id);
       const elementLeft = element?.styles.left !== undefined ? Number(element.styles.left) || 0 : 0;
       const maxWidth = Math.max(32, pageWidth - elementLeft);
-      const nextWidth = Math.max(32, Math.min(resizeState.current.startWidth + dx, maxWidth));
-      const nextHeight = Math.max(32, resizeState.current.startHeight + dy);
+      const maintainAspectRatio =
+        element?.type === "image" && element.maintainAspectRatio && element.intrinsicAspectRatio && element.intrinsicAspectRatio > 0;
 
-      onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: false });
+      if (maintainAspectRatio && element?.intrinsicAspectRatio) {
+        const nextWidth = Math.max(32, Math.min(resizeState.current.startWidth + dx, maxWidth));
+        const nextHeight = Math.max(32, nextWidth / element.intrinsicAspectRatio);
+        onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: false });
+      } else {
+        const nextWidth = Math.max(32, Math.min(resizeState.current.startWidth + dx, maxWidth));
+        const nextHeight = Math.max(32, resizeState.current.startHeight + dy);
+        onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: false });
+      }
     },
     [elements, onStyleChange, pageWidth]
   );
@@ -113,10 +121,18 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
         const element = elements.find((item) => item.id === resizeState.current?.id);
         const elementLeft = element?.styles.left !== undefined ? Number(element.styles.left) || 0 : 0;
         const maxWidth = Math.max(32, pageWidth - elementLeft);
-        const nextWidth = Math.max(32, Math.min(resizeState.current.startWidth + dx, maxWidth));
-        const nextHeight = Math.max(32, resizeState.current.startHeight + dy);
+        const maintainAspectRatio =
+          element?.type === "image" && element.maintainAspectRatio && element.intrinsicAspectRatio && element.intrinsicAspectRatio > 0;
 
-        onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: true });
+        if (maintainAspectRatio && element?.intrinsicAspectRatio) {
+          const nextWidth = Math.max(32, Math.min(resizeState.current.startWidth + dx, maxWidth));
+          const nextHeight = Math.max(32, nextWidth / element.intrinsicAspectRatio);
+          onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: true });
+        } else {
+          const nextWidth = Math.max(32, Math.min(resizeState.current.startWidth + dx, maxWidth));
+          const nextHeight = Math.max(32, resizeState.current.startHeight + dy);
+          onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: true });
+        }
         resizeState.current = null;
       }
 
