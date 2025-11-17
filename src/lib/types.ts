@@ -3,6 +3,7 @@ import type { BuilderNode } from "@/types/nodes";
 
 export interface Style extends React.CSSProperties {
   [key: string]: any;
+  zIndex?: number;
 }
 
 export type CanvasElementType = "text" | "image" | "button";
@@ -99,7 +100,8 @@ const baseElementStyles: Record<CanvasElementType, Style> = {
     fontWeight: 600,
     fontFamily: "Inter, 'Helvetica Neue', Arial, sans-serif",
     lineHeight: 1.4,
-    textAlign: "left"
+    textAlign: "left",
+    zIndex: 1
   },
   image: {
     top: 220,
@@ -108,7 +110,8 @@ const baseElementStyles: Record<CanvasElementType, Style> = {
     height: 240,
     objectFit: "cover",
     borderRadius: 16,
-    backgroundColor: "#dfe3f5"
+    backgroundColor: "#dfe3f5",
+    zIndex: 1
   },
   button: {
     top: 520,
@@ -123,7 +126,8 @@ const baseElementStyles: Record<CanvasElementType, Style> = {
     textAlign: "center",
     display: "flex",
     alignItems: "center",
-    justifyContent: "center"
+    justifyContent: "center",
+    zIndex: 1
   }
 };
 

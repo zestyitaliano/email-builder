@@ -107,6 +107,51 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
     [applyElementUpdate]
   );
 
+  const handleLayerChange = useCallback(
+    (id: string, action: "front" | "back" | "forward" | "backward") => {
+      applyElementUpdate(
+        (prev) => {
+          const target = prev.find((element) => element.id === id);
+          if (!target) return prev;
+
+          const zValues = prev.map((element) =>
+            typeof element.styles.zIndex === "number" ? element.styles.zIndex : 0
+          );
+          const currentZ = typeof target.styles.zIndex === "number" ? target.styles.zIndex : 0;
+          const maxZ = zValues.length ? Math.max(...zValues) : 0;
+          const minZ = zValues.length ? Math.min(...zValues) : 0;
+
+          let nextZ = currentZ;
+
+          switch (action) {
+            case "front":
+              nextZ = maxZ + 1;
+              break;
+            case "back":
+              nextZ = minZ - 1;
+              break;
+            case "forward":
+              nextZ = currentZ + 1;
+              break;
+            case "backward":
+              nextZ = currentZ - 1;
+              break;
+            default:
+              break;
+          }
+
+          if (nextZ === currentZ) return prev;
+
+          return prev.map((element) =>
+            element.id === id ? { ...element, styles: { ...element.styles, zIndex: nextZ } } : element
+          );
+        },
+        { commit: true }
+      );
+    },
+    [applyElementUpdate]
+  );
+
   const nudgeSelectedElement = useCallback(
     (dx: number, dy: number) => {
       if (!selectedElementId) return;
@@ -488,6 +533,7 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
           onContentChange={handlePanelContentChange}
           onElementMetaChange={handleElementMetaChange}
           onDeleteElement={handleDeleteElement}
+          onLayerChange={handleLayerChange}
           onApplyFonts={handleApplyFonts}
           onApplyPalette={handleApplyPalette}
           onPageSettingsChange={handlePageSettingsChange}

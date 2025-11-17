@@ -53,6 +53,14 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
 
   const pageWidth = useMemo(() => Math.max(page.width, 320), [page.width]);
 
+  const sortedElements = useMemo(() => {
+    return [...elements].sort((a, b) => {
+      const za = typeof a.styles.zIndex === "number" ? a.styles.zIndex : 0;
+      const zb = typeof b.styles.zIndex === "number" ? b.styles.zIndex : 0;
+      return za - zb;
+    });
+  }, [elements]);
+
   const handleDragMouseMove = useCallback(
     (event: MouseEvent) => {
       if (!dragState.current) return;
@@ -193,7 +201,7 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
   };
 
   const renderElement = (element: CanvasElement) => {
-    const { top = 0, left = 0, width = 240, height, ...style } = element.styles;
+    const { top = 0, left = 0, width = 240, height, zIndex, ...style } = element.styles;
     const isSelected = element.id === selectedElementId;
     const wrapperStyle: React.CSSProperties = {
       position: "absolute",
@@ -201,7 +209,8 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
       left: Number(left),
       width: Number(width),
       height: height !== undefined ? Number(height) : undefined,
-      cursor: "move"
+      cursor: "move",
+      zIndex: typeof zIndex === "number" ? zIndex : undefined
     };
 
     return (
@@ -251,7 +260,7 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
               margin: "0 auto"
             }}
           >
-            {elements.map((element) => renderElement(element))}
+            {sortedElements.map((element) => renderElement(element))}
           </div>
         </div>
       </div>

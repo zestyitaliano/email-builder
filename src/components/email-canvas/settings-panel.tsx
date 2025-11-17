@@ -25,6 +25,7 @@ interface SettingsPanelProps {
   onContentChange: (content: string) => void;
   onElementMetaChange?: (id: string, patch: Partial<CanvasElement>) => void;
   onDeleteElement: (id: string) => void;
+  onLayerChange?: (id: string, action: "front" | "back" | "forward" | "backward") => void;
   onApplyFonts?: (fonts: string[]) => void;
   onApplyPalette?: (palettes: string[]) => void;
   onPageSettingsChange: (patch: Partial<CanvasPageSettings>) => void;
@@ -41,6 +42,7 @@ export function SettingsPanel({
   onContentChange,
   onElementMetaChange,
   onDeleteElement,
+  onLayerChange,
   onApplyFonts,
   onApplyPalette,
   onPageSettingsChange,
@@ -307,6 +309,7 @@ export function SettingsPanel({
           onStyleChange={onStyleChange}
           onContentChange={onContentChange}
           onElementMetaChange={onElementMetaChange}
+          onLayerChange={onLayerChange}
           onDelete={() => onDeleteElement(selectedElement.id)}
         />
       ) : (
