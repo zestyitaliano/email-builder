@@ -21,38 +21,69 @@ interface DragState {
   latestLeft: number;
 }
 
+interface ResizeState {
+  id: string;
+  startX: number;
+  startY: number;
+  startWidth: number;
+  startHeight: number;
+  latestWidth: number;
+  latestHeight: number;
+}
+
 export function Canvas({ elements, selectedElementId, onSelectElement, onStyleChange }: CanvasProps) {
   const dragState = useRef<DragState | null>(null);
-
-  const stopDragging = useCallback(() => {
-    if (!dragState.current) return;
-    const { id, latestTop, latestLeft } = dragState.current;
-    onStyleChange(id, { top: latestTop, left: latestLeft }, { commit: true });
-    dragState.current = null;
-    window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("mouseup", stopDragging);
-  }, [onStyleChange]);
+  const resizeState = useRef<ResizeState | null>(null);
 
   const handleMouseMove = useCallback(
     (event: MouseEvent) => {
-      if (!dragState.current) return;
+      if (!dragState.current && !resizeState.current) return;
       event.preventDefault();
-      const deltaX = event.clientX - dragState.current.startX;
-      const deltaY = event.clientY - dragState.current.startY;
-      const nextTop = dragState.current.originTop + deltaY;
-      const nextLeft = dragState.current.originLeft + deltaX;
-      dragState.current = { ...dragState.current, latestTop: nextTop, latestLeft: nextLeft };
-      onStyleChange(dragState.current.id, { top: nextTop, left: nextLeft }, { commit: false });
+
+      if (dragState.current) {
+        const deltaX = event.clientX - dragState.current.startX;
+        const deltaY = event.clientY - dragState.current.startY;
+        const nextTop = dragState.current.originTop + deltaY;
+        const nextLeft = dragState.current.originLeft + deltaX;
+        dragState.current = { ...dragState.current, latestTop: nextTop, latestLeft: nextLeft };
+        onStyleChange(dragState.current.id, { top: nextTop, left: nextLeft }, { commit: false });
+      }
+
+      if (resizeState.current) {
+        const deltaX = event.clientX - resizeState.current.startX;
+        const deltaY = event.clientY - resizeState.current.startY;
+        const nextWidth = Math.max(32, resizeState.current.startWidth + deltaX);
+        const nextHeight = Math.max(32, resizeState.current.startHeight + deltaY);
+        resizeState.current = { ...resizeState.current, latestWidth: nextWidth, latestHeight: nextHeight };
+        onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: false });
+      }
     },
     [onStyleChange]
   );
 
+  const handleMouseUp = useCallback(() => {
+    if (dragState.current) {
+      const { id, latestTop, latestLeft } = dragState.current;
+      onStyleChange(id, { top: latestTop, left: latestLeft }, { commit: true });
+      dragState.current = null;
+    }
+
+    if (resizeState.current) {
+      const { id, latestWidth, latestHeight } = resizeState.current;
+      onStyleChange(id, { width: latestWidth, height: latestHeight }, { commit: true });
+      resizeState.current = null;
+    }
+
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", handleMouseUp);
+  }, [handleMouseMove, onStyleChange]);
+
   useEffect(() => {
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", stopDragging);
+      window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [handleMouseMove, stopDragging]);
+  }, [handleMouseMove, handleMouseUp]);
 
   const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>, element: CanvasElement) => {
     if (event.button !== 0) return;
@@ -69,7 +100,29 @@ export function Canvas({ elements, selectedElementId, onSelectElement, onStyleCh
       latestLeft: Number(left)
     };
     window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", stopDragging);
+    window.addEventListener("mouseup", handleMouseUp);
+  };
+
+  const handleResizeMouseDown = (event: React.MouseEvent<HTMLDivElement>, element: CanvasElement) => {
+    if (event.button !== 0) return;
+    event.stopPropagation();
+    event.preventDefault();
+    onSelectElement(element.id);
+    const width = Number(element.styles.width ?? 200) || 200;
+    const height = Number(element.styles.height ?? 100) || 100;
+
+    resizeState.current = {
+      id: element.id,
+      startX: event.clientX,
+      startY: event.clientY,
+      startWidth: width,
+      startHeight: height,
+      latestWidth: width,
+      latestHeight: height
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
   };
 
   const renderElement = (element: CanvasElement) => {
@@ -88,7 +141,7 @@ export function Canvas({ elements, selectedElementId, onSelectElement, onStyleCh
       <div
         key={element.id}
         style={wrapperStyle}
-        className={`group rounded-3xl border ${isSelected ? "border-[#7953D2] shadow-xl" : "border-transparent"}`}
+        className={`group relative rounded-3xl border ${isSelected ? "border-[#7953D2] shadow-xl" : "border-transparent"}`}
         onMouseDown={(event) => handleMouseDown(event, element)}
         onClick={(event) => {
           event.stopPropagation();
@@ -96,6 +149,13 @@ export function Canvas({ elements, selectedElementId, onSelectElement, onStyleCh
         }}
       >
         {renderInnerElement(element, style)}
+        {isSelected ? (
+          <div
+            onMouseDown={(event) => handleResizeMouseDown(event, element)}
+            className="absolute -right-1.5 -bottom-1.5 h-3 w-3 rounded-[4px] bg-[#7953D2] shadow ring-4 ring-white ring-offset-0"
+            style={{ cursor: "nwse-resize" }}
+          />
+        ) : null}
       </div>
     );
   };
@@ -124,13 +184,14 @@ const renderInnerElement = (element: CanvasElement, style: Style) => {
   }
 
   if (element.type === "image") {
-    const src = typeof style.src === "string" && style.src.length > 0 ? style.src : "https://placehold.co/600x400";
+    const src = element.imageUrl || element.content || "https://placehold.co/600x400";
+    const { objectFit, borderRadius, ...rest } = style;
     return (
       <img
         src={src}
         alt={element.content || "Image"}
-        className="h-full w-full rounded-3xl object-cover"
-        style={{ borderRadius: style.borderRadius }}
+        className="h-full w-full object-cover"
+        style={{ ...rest, objectFit: objectFit ?? "cover", borderRadius }}
       />
     );
   }

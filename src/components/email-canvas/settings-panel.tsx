@@ -9,6 +9,7 @@ interface SettingsPanelProps {
   onAddElement: (type: CanvasElementType) => void;
   onStyleChange: (style: Partial<Style>, options?: { commit?: boolean }) => void;
   onContentChange: (content: string) => void;
+  onElementMetaChange: (id: string, patch: Partial<CanvasElement>, options?: { commit?: boolean }) => void;
   onDeleteElement: (id: string) => void;
   onApplyFonts?: (fonts: string[]) => void;
   onApplyPalette?: (palettes: string[]) => void;
@@ -20,6 +21,7 @@ export function SettingsPanel({
   onAddElement,
   onStyleChange,
   onContentChange,
+  onElementMetaChange,
   onDeleteElement,
   onApplyFonts,
   onApplyPalette
@@ -32,6 +34,7 @@ export function SettingsPanel({
           element={selectedElement}
           onStyleChange={onStyleChange}
           onContentChange={onContentChange}
+          onElementMetaChange={onElementMetaChange}
           onDelete={() => onDeleteElement(selectedElement.id)}
         />
       ) : (

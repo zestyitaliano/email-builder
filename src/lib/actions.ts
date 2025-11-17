@@ -72,9 +72,7 @@ const renderElementContent = (element: CanvasElement) => {
     return `<div style="${inlineStyles}">${escapeHtml(element.content)}</div>`;
   }
   if (element.type === "image") {
-    const src = typeof element.styles.src === "string" && element.styles.src.length > 0
-      ? element.styles.src
-      : "https://placehold.co/600x400";
+    const src = element.imageUrl || element.content || "https://placehold.co/600x400";
     const radius = element.styles.borderRadius ?? 0;
     const radiusValue = typeof radius === "number" ? `${radius}px` : String(radius);
     const baseImageStyles = inlineStyles
@@ -82,7 +80,9 @@ const renderElementContent = (element: CanvasElement) => {
       : `object-fit:${element.styles.objectFit ?? "cover"}`;
     return `<img src="${escapeHtml(src)}" alt="${escapeHtml(element.content || "Image")}" style="${baseImageStyles};width:100%;height:100%;border-radius:${radiusValue}" />`;
   }
-  return `<a href="#" style="${inlineStyles};display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">${escapeHtml(element.content)}</a>`;
+  const href = element.linkUrl || "#";
+  const targetAttrs = element.openInNewTab ? ' target="_blank" rel="noopener noreferrer"' : "";
+  return `<a href="${escapeHtml(href)}"${targetAttrs} style="${inlineStyles};display:inline-flex;align-items:center;justify-content:center;text-decoration:none;">${escapeHtml(element.content)}</a>`;
 };
 
 const renderAbsoluteLayout = (elements: CanvasElement[]) =>
