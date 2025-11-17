@@ -24,9 +24,26 @@ export interface CanvasPageSettings {
   padding: number;
 }
 
+export interface TextStyle {
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  lineHeight: number;
+}
+
+export interface CanvasDesignTokens {
+  textStyles: {
+    h1: TextStyle;
+    h2: TextStyle;
+    body: TextStyle;
+  };
+  colorSwatches: string[];
+}
+
 export interface CanvasDocument {
   elements: CanvasElement[];
   page: CanvasPageSettings;
+  tokens: CanvasDesignTokens;
 }
 
 export function createDefaultCanvasDocument(elements: CanvasElement[] = []): CanvasDocument {
@@ -37,6 +54,29 @@ export function createDefaultCanvasDocument(elements: CanvasElement[] = []): Can
       height: "auto",
       backgroundColor: "#ffffff",
       padding: 24
+    },
+    tokens: {
+      textStyles: {
+        h1: {
+          fontFamily: "Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+          fontSize: 28,
+          fontWeight: 700,
+          lineHeight: 1.2
+        },
+        h2: {
+          fontFamily: "Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+          fontSize: 22,
+          fontWeight: 600,
+          lineHeight: 1.3
+        },
+        body: {
+          fontFamily: "Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
+          fontSize: 16,
+          fontWeight: 400,
+          lineHeight: 1.5
+        }
+      },
+      colorSwatches: ["#111827", "#2563EB", "#F97316", "#10B981"]
     }
   };
 }

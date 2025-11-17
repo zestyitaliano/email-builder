@@ -141,7 +141,8 @@ function normalizeCanvasState(raw: unknown): CanvasDocument {
     const doc = raw as Partial<CanvasDocument>;
     return {
       elements: Array.isArray(doc.elements) ? (doc.elements as CanvasElement[]) : defaults.elements,
-      page: doc.page ?? defaults.page
+      page: doc.page ?? defaults.page,
+      tokens: doc.tokens ?? defaults.tokens
     };
   }
   return defaults;
