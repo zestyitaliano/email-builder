@@ -39,15 +39,6 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
     onStyleChange({ [key]: event.target.value }, { commit: true });
   };
 
-  const handleSliderChange = (key: keyof Style) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(event.target.value);
-    onStyleChange({ [key]: value }, { commit: false });
-  };
-
-  const handleSliderCommit = (key: keyof Style) => (value: number) => {
-    onStyleChange({ [key]: value }, { commit: true });
-  };
-
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -91,6 +82,17 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
                 </div>
               ))}
             </div>
+            <div className="space-y-1">
+              <p className="text-xs font-medium text-slate-500">Border radius</p>
+              <Slider
+                min={0}
+                max={64}
+                step={1}
+                value={[Number(element.styles.borderRadius ?? 0)]}
+                onValueChange={(value) => onStyleChange({ borderRadius: value[0] }, { commit: false })}
+                onValueCommit={(value) => onStyleChange({ borderRadius: value[0] }, { commit: true })}
+              />
+            </div>
           </AccordionContent>
         </AccordionItem>
         <AccordionItem value="typography">
@@ -113,10 +115,10 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
                   <Slider
                     min={12}
                     max={48}
-                    value={Number(element.styles.fontSize ?? 18)}
-                    onChange={handleSliderChange("fontSize")}
-                    onMouseUp={(event) => handleSliderCommit("fontSize")(Number(event.currentTarget.value))}
-                    onTouchEnd={(event) => handleSliderCommit("fontSize")(Number(event.currentTarget.value))}
+                    step={1}
+                    value={[Number(element.styles.fontSize ?? 18)]}
+                    onValueChange={(value) => onStyleChange({ fontSize: value[0] }, { commit: false })}
+                    onValueCommit={(value) => onStyleChange({ fontSize: value[0] }, { commit: true })}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -171,17 +173,6 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
                   onChange={handleColorChange("borderColor")}
                 />
               </div>
-            </div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Border radius</p>
-              <Slider
-                min={0}
-                max={48}
-                value={Number(element.styles.borderRadius ?? 0)}
-                onChange={handleSliderChange("borderRadius")}
-                onMouseUp={(event) => handleSliderCommit("borderRadius")(Number(event.currentTarget.value))}
-                onTouchEnd={(event) => handleSliderCommit("borderRadius")(Number(event.currentTarget.value))}
-              />
             </div>
           </AccordionContent>
         </AccordionItem>
