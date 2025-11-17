@@ -2,13 +2,7 @@
 
 import { suggestImprovedEmailDesign } from "@/ai/flows/suggest-improved-email-design";
 import { createSupabaseServerClient } from "@/lib/supabaseServer";
-import type {
-  CanvasDesignTokens,
-  CanvasDocument,
-  CanvasElement,
-  CanvasPageSettings,
-  Style
-} from "@/lib/types";
+import type { CanvasDocument, CanvasElement, Style } from "@/lib/types";
 import { createDefaultCanvasDocument } from "@/lib/types";
 
 const LAYOUT_KEYS = new Set([
@@ -103,11 +97,24 @@ export async function exportToHtml(doc: CanvasDocument): Promise<string> {
   const width = page.width ?? 600;
   const bg = page.backgroundColor ?? "#ffffff";
   const padding = page.padding ?? 24;
-  const heightAttr = page.height === "auto" || page.height === undefined ? "auto" : `${Number(page.height)}px`;
-  const minHeight = page.height === "auto" ? "720px" : heightAttr;
+  const contentHeight =
+    page.height !== "auto" && page.height !== undefined
+      ? Number(page.height)
+      : Math.max(
+          elements.reduce((max, element) => {
+            const top = Number(element.styles.top ?? 0);
+            const height =
+              element.styles.height !== undefined && element.styles.height !== null
+                ? Number(element.styles.height)
+                : 120;
+            return Math.max(max, top + height);
+          }, 0) + 160,
+          720
+        );
+  const heightAttr = `${contentHeight}px`;
   const contentWidth = Math.max(0, width - padding * 2);
 
-  const documentHtml = `<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Email Preview</title></head><body style="margin:0;padding:32px;background-color:#E8EAF6;font-family:Inter,Arial,sans-serif;"><table role="presentation" width="100%" style="width:100%;border-spacing:0;border-collapse:collapse;"><tr><td align="center" style="padding:0;"><table role="presentation" width="${width}" style="width:${width}px;border-spacing:0;border-collapse:collapse;background-color:${bg};border-radius:32px;box-shadow:0 20px 45px rgba(63,81,181,0.12);"><tr><td style="position:relative;height:${minHeight};padding:${padding}px;background-image:linear-gradient(145deg,#f5f5ff,#ffffff);"><div style="position:relative;width:${contentWidth}px;height:${heightAttr};min-height:${minHeight};margin:0 auto;">${canvasHtml}</div></td></tr></table></td></tr></table></body></html>`;
+  const documentHtml = `<!DOCTYPE html><html lang="en"><head><meta charSet="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><title>Email Preview</title></head><body style="margin:0;padding:32px;background-color:${bg};font-family:Inter,Arial,sans-serif;"><table role="presentation" width="100%" style="width:100%;border-spacing:0;border-collapse:collapse;"><tr><td align="center" style="padding:0;"><table role="presentation" width="${width}" style="width:${width}px;border-spacing:0;border-collapse:collapse;background-color:${bg};border-radius:32px;box-shadow:0 20px 45px rgba(63,81,181,0.12);"><tr><td style="position:relative;padding:${padding}px;background-color:${bg};"><div style="position:relative;width:${contentWidth}px;height:${heightAttr};margin:0 auto;">${canvasHtml}</div></td></tr></table></td></tr></table></body></html>`;
   return documentHtml;
 }
 
@@ -127,27 +134,16 @@ export async function getAiSuggestions(currentHtml: string) {
 
 function normalizeCanvasState(raw: unknown): CanvasDocument {
   const defaults = createDefaultCanvasDocument();
-
   if (Array.isArray(raw)) {
-    return {
-      ...defaults,
-      elements: raw as CanvasElement[]
-    };
+    return { ...defaults, elements: raw as CanvasElement[] };
   }
-
   if (raw && typeof raw === "object") {
-    const obj = raw as Partial<CanvasDocument> & {
-      elements?: CanvasElement[];
-      page?: CanvasPageSettings;
-      tokens?: CanvasDesignTokens;
-    };
+    const doc = raw as Partial<CanvasDocument>;
     return {
-      elements: Array.isArray(obj.elements) ? (obj.elements as CanvasElement[]) : defaults.elements,
-      page: obj.page ?? defaults.page,
-      tokens: obj.tokens ?? defaults.tokens
+      elements: Array.isArray(doc.elements) ? (doc.elements as CanvasElement[]) : defaults.elements,
+      page: doc.page ?? defaults.page
     };
   }
-
   return defaults;
 }
 
