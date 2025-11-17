@@ -54,6 +54,14 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
     event.target.value = "";
   };
 
+  const getIntrinsicAspectRatio = () => {
+    const width = Number(element.styles.width);
+    const height = Number(element.styles.height);
+    const safeWidth = Number.isFinite(width) && width > 0 ? width : 300;
+    const safeHeight = Number.isFinite(height) && height > 0 ? height : 200;
+    return safeWidth / safeHeight;
+  };
+
   return (
     <div className="space-y-4 rounded-3xl bg-white p-4 shadow-sm">
       <div className="space-y-2">
@@ -210,6 +218,42 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
                   Upload image
                 </Button>
               </div>
+              <div>
+                <p className="text-xs font-medium text-slate-500">Object fit</p>
+                <Select
+                  value={String(element.styles.objectFit ?? "cover")}
+                  onChange={(event) => onStyleChange({ objectFit: event.target.value }, { commit: true })}
+                >
+                  {(["cover", "contain", "fill"] as const).map((fit) => (
+                    <option key={fit} value={fit}>
+                      {fit}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-slate-300 text-[#3F51B5] focus:ring-0"
+                  checked={Boolean(element.maintainAspectRatio)}
+                  onChange={(event) => {
+                    const checked = event.target.checked;
+                    if (checked) {
+                      const intrinsicAspectRatio =
+                        element.intrinsicAspectRatio && element.intrinsicAspectRatio > 0
+                          ? element.intrinsicAspectRatio
+                          : getIntrinsicAspectRatio();
+                      onElementMetaChange?.(element.id, {
+                        maintainAspectRatio: true,
+                        intrinsicAspectRatio
+                      });
+                    } else {
+                      onElementMetaChange?.(element.id, { maintainAspectRatio: false });
+                    }
+                  }}
+                />
+                Lock aspect ratio
+              </label>
             </AccordionContent>
           </AccordionItem>
         ) : null}
