@@ -14,6 +14,7 @@ import {
   createDefaultCanvasDocument
 } from "@/lib/types";
 import type {
+  CanvasDesignTokens,
   CanvasDocument,
   CanvasElement,
   CanvasElementType,
@@ -323,6 +324,16 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
     }));
   }, []);
 
+  const updateTokens = useCallback((patch: Partial<CanvasDesignTokens>) => {
+    setDoc((prev) => ({
+      ...prev,
+      tokens: {
+        ...prev.tokens,
+        ...patch
+      }
+    }));
+  }, []);
+
   const handleSave = useCallback(() => {
     setSaveError(null);
     setSaveStatus("saving");
@@ -418,6 +429,7 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
           elements={elements}
           selectedElement={selectedElement}
           pageSettings={doc.page}
+          tokens={doc.tokens}
           onAddElement={handleAddElement}
           onStyleChange={handlePanelStyleChange}
           onContentChange={handlePanelContentChange}
@@ -426,6 +438,7 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
           onApplyFonts={handleApplyFonts}
           onApplyPalette={handleApplyPalette}
           onPageSettingsChange={handlePageSettingsChange}
+          onTokensChange={updateTokens}
         />
         <div className="flex flex-1 flex-col gap-4">
           <header className="rounded-3xl bg-white/90 p-5 shadow-sm">
