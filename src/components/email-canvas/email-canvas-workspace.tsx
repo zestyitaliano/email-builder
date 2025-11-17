@@ -27,6 +27,10 @@ interface EmailCanvasWorkspaceProps {
   initialTemplateId?: string | null;
 }
 
+function snapToGrid(value: number, grid = 8): number {
+  return Math.round(value / grid) * grid;
+}
+
 const palettePresets: Record<string, { primary: string; accent: string; text: string }> = {
   "Blue & Silver": { primary: "#3F51B5", accent: "#E0E7FF", text: "#1F2937" },
   "Warm Coral": { primary: "#F97316", accent: "#FED7AA", text: "#7C2D12" },
@@ -118,8 +122,8 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
               ...el,
               styles: {
                 ...el.styles,
-                top: currentTop + dy,
-                left: currentLeft + dx
+                top: snapToGrid(currentTop + dy),
+                left: snapToGrid(currentLeft + dx)
               }
             };
           }),
@@ -206,6 +210,55 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
       }
 
       if (["INPUT", "TEXTAREA"].includes(tag)) return;
+      if (event.key === "Delete" || event.key === "Backspace") {
+        if (!selectedElementId) return;
+        event.preventDefault();
+        applyElementUpdate(
+          (prev) => {
+            const nextElements = prev.filter((element) => element.id !== selectedElementId);
+            setSelectedElementId((current) => (current === selectedElementId ? nextElements[0]?.id ?? null : current));
+            return nextElements;
+          },
+          { commit: true }
+        );
+        return;
+      }
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "d") {
+        if (!selectedElementId) return;
+        event.preventDefault();
+        applyElementUpdate(
+          (prev) => {
+            const selectedIndex = prev.findIndex((element) => element.id === selectedElementId);
+            if (selectedIndex === -1) return prev;
+            const selectedElement = prev[selectedIndex];
+            const clonedId = createCanvasElement(selectedElement.type).id;
+            const currentTop =
+              typeof selectedElement.styles.top === "number"
+                ? selectedElement.styles.top
+                : Number(selectedElement.styles.top) || 0;
+            const currentLeft =
+              typeof selectedElement.styles.left === "number"
+                ? selectedElement.styles.left
+                : Number(selectedElement.styles.left) || 0;
+            const clonedElement: CanvasElement = {
+              ...selectedElement,
+              id: clonedId,
+              styles: {
+                ...selectedElement.styles,
+                top: snapToGrid(currentTop + 16),
+                left: snapToGrid(currentLeft + 16)
+              }
+            };
+            const nextElements = [...prev];
+            nextElements.splice(selectedIndex + 1, 0, clonedElement);
+            setSelectedElementId(clonedId);
+            return nextElements;
+          },
+          { commit: true }
+        );
+        return;
+      }
       if (!selectedElementId) return;
       if (event.altKey) return;
       if (!event.key.startsWith("Arrow")) return;
@@ -231,7 +284,7 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [undo, redo, selectedElementId, nudgeSelectedElement]);
+  }, [applyElementUpdate, nudgeSelectedElement, redo, selectedElementId, undo]);
 
   const selectedElement = useMemo(
     () => elements.find((element) => element.id === selectedElementId) ?? null,

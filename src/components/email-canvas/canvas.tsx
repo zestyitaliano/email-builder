@@ -12,6 +12,8 @@ interface CanvasProps {
   onStyleChange: (id: string, style: Partial<Style>, options?: { commit?: boolean }) => void;
 }
 
+const snapToGrid = (value: number, grid = 8) => Math.round(value / grid) * grid;
+
 interface DragState {
   id: string;
   startX: number;
@@ -58,12 +60,21 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
 
       const deltaX = event.clientX - dragState.current.startX;
       const deltaY = event.clientY - dragState.current.startY;
-      const nextTop = dragState.current.originTop + deltaY;
-      const nextLeft = dragState.current.originLeft + deltaX;
+      const element = elements.find((item) => item.id === dragState.current?.id);
+      const elementWidth = element?.styles.width !== undefined ? Number(element.styles.width) || 0 : null;
+      let nextTop = snapToGrid(dragState.current.originTop + deltaY);
+      let nextLeft = snapToGrid(dragState.current.originLeft + deltaX);
+
+      nextTop = Math.max(-200, nextTop);
+      if (elementWidth && elementWidth > 0) {
+        nextLeft = Math.max(0, Math.min(nextLeft, pageWidth - elementWidth));
+      } else {
+        nextLeft = Math.max(0, nextLeft);
+      }
       dragState.current = { ...dragState.current, latestTop: nextTop, latestLeft: nextLeft };
       onStyleChange(dragState.current.id, { top: nextTop, left: nextLeft }, { commit: false });
     },
-    [onStyleChange]
+    [elements, onStyleChange, pageWidth]
   );
 
   const stopDragging = useCallback(() => {
@@ -83,12 +94,15 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
 
       const dx = event.clientX - resizeState.current.startX;
       const dy = event.clientY - resizeState.current.startY;
-      const nextWidth = Math.max(32, resizeState.current.startWidth + dx);
+      const element = elements.find((item) => item.id === resizeState.current?.id);
+      const elementLeft = element?.styles.left !== undefined ? Number(element.styles.left) || 0 : 0;
+      const maxWidth = Math.max(32, pageWidth - elementLeft);
+      const nextWidth = Math.max(32, Math.min(resizeState.current.startWidth + dx, maxWidth));
       const nextHeight = Math.max(32, resizeState.current.startHeight + dy);
 
       onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: false });
     },
-    [onStyleChange]
+    [elements, onStyleChange, pageWidth]
   );
 
   const handleResizeMouseUp = useCallback(
@@ -96,7 +110,10 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
       if (resizeState.current) {
         const dx = event.clientX - resizeState.current.startX;
         const dy = event.clientY - resizeState.current.startY;
-        const nextWidth = Math.max(32, resizeState.current.startWidth + dx);
+        const element = elements.find((item) => item.id === resizeState.current?.id);
+        const elementLeft = element?.styles.left !== undefined ? Number(element.styles.left) || 0 : 0;
+        const maxWidth = Math.max(32, pageWidth - elementLeft);
+        const nextWidth = Math.max(32, Math.min(resizeState.current.startWidth + dx, maxWidth));
         const nextHeight = Math.max(32, resizeState.current.startHeight + dy);
 
         onStyleChange(resizeState.current.id, { width: nextWidth, height: nextHeight }, { commit: true });
@@ -106,7 +123,7 @@ export function Canvas({ elements, page, selectedElementId, onSelectElement, onS
       window.removeEventListener("mousemove", handleResizeMouseMove);
       window.removeEventListener("mouseup", handleResizeMouseUp);
     },
-    [handleResizeMouseMove, onStyleChange]
+    [elements, handleResizeMouseMove, onStyleChange, pageWidth]
   );
 
   useEffect(() => {
