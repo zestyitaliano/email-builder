@@ -12,11 +12,19 @@ interface StyleEditorProps {
   onContentChange: (content: string) => void;
   onElementMetaChange?: (id: string, patch: Partial<CanvasElement>) => void;
   onDelete: () => void;
+  onLayerChange?: (id: string, action: "front" | "back" | "forward" | "backward") => void;
 }
 
 const fontFamilies = ["Inter", "Roboto", "Lato", "Playfair Display", "Space Grotesk"];
 
-export function StyleEditor({ element, onStyleChange, onContentChange, onElementMetaChange, onDelete }: StyleEditorProps) {
+export function StyleEditor({
+  element,
+  onStyleChange,
+  onContentChange,
+  onElementMetaChange,
+  onDelete,
+  onLayerChange
+}: StyleEditorProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleNumberChange = (key: keyof Style) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -73,6 +81,45 @@ export function StyleEditor({ element, onStyleChange, onContentChange, onElement
           onBlur={(event) => onContentChange(event.target.value)}
         />
       </div>
+      {onLayerChange ? (
+        <div className="space-y-2 rounded-2xl bg-slate-50 p-3">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Layering</p>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => onLayerChange(element.id, "front")}
+            >
+              Bring to front
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => onLayerChange(element.id, "back")}
+            >
+              Send to back
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => onLayerChange(element.id, "forward")}
+            >
+              Bring forward
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => onLayerChange(element.id, "backward")}
+            >
+              Send backward
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <Accordion defaultValue="layout" className="space-y-3">
         <AccordionItem value="layout">
           <AccordionTrigger value="layout">Layout</AccordionTrigger>
