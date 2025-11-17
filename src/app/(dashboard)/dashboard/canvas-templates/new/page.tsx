@@ -14,8 +14,7 @@ export default async function NewCanvasTemplatePage() {
     redirect("/login");
   }
 
-  const doc = createDefaultCanvasDocument();
-  doc.elements = createBaseCanvasElements();
+  const doc = createDefaultCanvasDocument(createBaseCanvasElements());
 
   return <EmailCanvasWorkspace initialDocument={doc} initialTemplateId={null} />;
 }

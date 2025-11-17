@@ -14,7 +14,6 @@ import {
   createDefaultCanvasDocument
 } from "@/lib/types";
 import type {
-  CanvasDesignTokens,
   CanvasDocument,
   CanvasElement,
   CanvasElementType,
@@ -39,22 +38,13 @@ const palettePresets: Record<string, { primary: string; accent: string; text: st
 const DEFAULT_PALETTE = palettePresets["Blue & Silver"];
 
 export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null }: EmailCanvasWorkspaceProps) {
-  const seedDoc = useMemo(() => {
-    const defaults = createDefaultCanvasDocument();
+  const [doc, setDoc] = useState<CanvasDocument>(() => {
+    const baseElements = cloneCanvasElements(initialDocument?.elements ?? createBaseCanvasElements());
     if (initialDocument) {
-      return {
-        ...defaults,
-        ...initialDocument,
-        elements: cloneCanvasElements(initialDocument.elements ?? [])
-      };
+      return { ...createDefaultCanvasDocument(), ...initialDocument, elements: baseElements };
     }
-    return {
-      ...defaults,
-      elements: cloneCanvasElements(createBaseCanvasElements())
-    };
-  }, [initialDocument]);
-
-  const [doc, setDoc] = useState<CanvasDocument>(seedDoc);
+    return createDefaultCanvasDocument(baseElements);
+  });
   const elements = doc.elements;
   const [selectedElementId, setSelectedElementId] = useState<string | null>(elements[0]?.id ?? null);
   const [history, setHistory] = useState<CanvasElement[][]>([cloneCanvasElements(elements)]);
@@ -326,71 +316,10 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
     [applyElementUpdate]
   );
 
-  const updatePageSettings = useCallback((patch: Partial<CanvasPageSettings>) => {
+  const handlePageSettingsChange = useCallback((patch: Partial<CanvasPageSettings>) => {
     setDoc((prev) => ({
       ...prev,
       page: { ...prev.page, ...patch }
-    }));
-  }, []);
-
-  const updateTokens = useCallback((patch: Partial<CanvasDesignTokens>) => {
-    setDoc((prev) => ({
-      ...prev,
-      tokens: {
-        ...prev.tokens,
-        ...patch,
-        textStyles: patch.textStyles
-          ? { ...prev.tokens.textStyles, ...patch.textStyles }
-          : prev.tokens.textStyles
-      }
-    }));
-  }, []);
-
-  const applyTextStyle = useCallback(
-    (variant: keyof CanvasDesignTokens["textStyles"]) => {
-      if (!selectedElement || selectedElement.type !== "text") return;
-      const style = doc.tokens.textStyles[variant];
-      if (!style) return;
-      updateElementStyle(selectedElement.id, style, { commit: true });
-    },
-    [doc.tokens.textStyles, selectedElement, updateElementStyle]
-  );
-
-  const applyColorSwatch = useCallback(
-    (color: string) => {
-      if (!selectedElement) return;
-      const stylePatch: Partial<Style> =
-        selectedElement.type === "text" ? { color } : { backgroundColor: color };
-      updateElementStyle(selectedElement.id, stylePatch, { commit: true });
-    },
-    [selectedElement, updateElementStyle]
-  );
-
-  const handleAddSwatch = useCallback(() => {
-    let newColor = "";
-    if (selectedElement) {
-      newColor =
-        selectedElement.type === "text"
-          ? String(selectedElement.styles.color ?? "")
-          : String(selectedElement.styles.backgroundColor ?? "");
-    }
-
-    if (!newColor) {
-      newColor = typeof window !== "undefined" ? window.prompt("Enter a hex color", "#111827") || "" : "";
-    }
-
-    if (!newColor) return;
-
-    setDoc((prev) => {
-      const nextSwatches = Array.from(new Set([...prev.tokens.colorSwatches, newColor]));
-      return { ...prev, tokens: { ...prev.tokens, colorSwatches: nextSwatches } };
-    });
-  }, [selectedElement]);
-
-  const handleRemoveSwatch = useCallback((color: string) => {
-    setDoc((prev) => ({
-      ...prev,
-      tokens: { ...prev.tokens, colorSwatches: prev.tokens.colorSwatches.filter((swatch) => swatch !== color) }
     }));
   }, []);
 
@@ -489,7 +418,6 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
           elements={elements}
           selectedElement={selectedElement}
           pageSettings={doc.page}
-          tokens={doc.tokens}
           onAddElement={handleAddElement}
           onStyleChange={handlePanelStyleChange}
           onContentChange={handlePanelContentChange}
@@ -497,12 +425,7 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
           onDeleteElement={handleDeleteElement}
           onApplyFonts={handleApplyFonts}
           onApplyPalette={handleApplyPalette}
-          onPageSettingsChange={updatePageSettings}
-          onTokensChange={updateTokens}
-          onApplyTextStyle={applyTextStyle}
-          onApplyColorSwatch={applyColorSwatch}
-          onAddSwatch={handleAddSwatch}
-          onRemoveSwatch={handleRemoveSwatch}
+          onPageSettingsChange={handlePageSettingsChange}
         />
         <div className="flex flex-1 flex-col gap-4">
           <header className="rounded-3xl bg-white/90 p-5 shadow-sm">
