@@ -264,10 +264,10 @@ export function EmailCanvasWorkspace({ initialDocument, initialTemplateId = null
   );
 
   const handleElementMetaChange = useCallback(
-    (id: string, patch: Partial<CanvasElement>, options: { commit?: boolean } = { commit: true }) => {
+    (id: string, patch: Partial<CanvasElement>) => {
       applyElementUpdate(
         (prev) => prev.map((element) => (element.id === id ? { ...element, ...patch } : element)),
-        options
+        { commit: true }
       );
     },
     [applyElementUpdate]
